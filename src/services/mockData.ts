@@ -1,5 +1,6 @@
-import { User } from '@/types/auth';
-import { Course } from '@/types/course';
+
+import { User, UserRole } from '@/types/auth';
+import { Course, CourseProgress } from '@/types/course';
 import { Document } from '@/types/document';
 
 // Mock data for users
@@ -8,49 +9,112 @@ export const USERS: User[] = [
     id: 'u1',
     name: 'John Doe',
     email: 'john.doe@example.com',
-    role: 'admin',
+    role: 'admin' as UserRole,
     avatar: '/avatars/1.png'
   },
   {
     id: 'u2',
     name: 'Dr. Sarah Chen',
     email: 'sarah.chen@example.com',
-    role: 'advisor',
+    role: 'expert' as UserRole, // Changed from "advisor" to match UserRole type
     avatar: '/avatars/2.png'
   },
   {
     id: 'u3',
     name: 'Emily White',
     email: 'emily.white@example.com',
-    role: 'client',
+    role: 'client' as UserRole,
     avatar: '/avatars/3.png'
   },
   {
     id: 'u4',
     name: 'David Lee',
     email: 'david.lee@example.com',
-    role: 'client',
+    role: 'client' as UserRole,
     avatar: '/avatars/4.png'
   }
 ];
 
-// Mock data for courses
+// Mock data for courses with modules
 export const COURSES: Course[] = [
   {
     id: 'c1',
     title: 'Financial Planning Basics',
     description: 'Learn the fundamentals of financial planning.',
-    instructor: 'Dr. Sarah Chen',
-    duration: '4 weeks',
+    thumbnailUrl: '/placeholder.svg',
+    modules: [
+      {
+        id: 'm1',
+        title: 'Introduction to Financial Planning',
+        description: 'Learn the basics of financial planning',
+        order: 1,
+        lessons: [
+          {
+            id: 'l1',
+            title: 'What is Financial Planning?',
+            description: 'An overview of financial planning concepts',
+            content: 'Financial planning is the process of...',
+            order: 1
+          },
+          {
+            id: 'l2',
+            title: 'Setting Financial Goals',
+            description: 'How to set achievable financial goals',
+            content: 'When setting financial goals, it is important to...',
+            order: 2
+          }
+        ]
+      }
+    ],
+    tags: ['finance', 'planning', 'basics'],
     enrolledUsers: ['u3', 'u4']
   },
   {
     id: 'c2',
     title: 'Investment Strategies for Beginners',
     description: 'Discover how to invest wisely and grow your wealth.',
-    instructor: 'John Doe',
-    duration: '6 weeks',
+    thumbnailUrl: '/placeholder.svg',
+    modules: [
+      {
+        id: 'm2',
+        title: 'Introduction to Investing',
+        description: 'Learn the basics of investing',
+        order: 1,
+        lessons: [
+          {
+            id: 'l3',
+            title: 'Investment Basics',
+            description: 'Understanding the fundamentals of investing',
+            content: 'Investing is the act of allocating resources...',
+            order: 1
+          }
+        ]
+      }
+    ],
+    tags: ['investing', 'finance', 'wealth'],
     enrolledUsers: ['u2', 'u3']
+  }
+];
+
+// Mock data for course progress
+export const COURSE_PROGRESS: CourseProgress[] = [
+  {
+    userId: 'u3',
+    courseId: 'c1',
+    completedLessons: ['l1'],
+    lastAccessed: new Date('2023-07-15')
+  },
+  {
+    userId: 'u4',
+    courseId: 'c1',
+    completedLessons: [],
+    lastAccessed: new Date('2023-07-10')
+  },
+  {
+    userId: 'u2',
+    courseId: 'c2',
+    completedLessons: ['l3'],
+    lastAccessed: new Date('2023-07-20')
   }
 ];
 
@@ -177,3 +241,14 @@ export const getCourseById = (id: string) => {
 export const getDocumentsForUser = (userId: string) => {
   return DOCUMENTS.filter(doc => doc.visibleTo.includes(userId));
 };
+
+// Function to get courses for a specific user
+export const getCoursesForUser = (userId: string) => {
+  return COURSES.filter(course => course.enrolledUsers.includes(userId));
+};
+
+// Function to get course progress for a specific user
+export const getCourseProgressForUser = (userId: string) => {
+  return COURSE_PROGRESS.filter(progress => progress.userId === userId);
+};
+
