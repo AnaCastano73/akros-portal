@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -55,6 +54,12 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (!user) return;
     
     try {
+      // Check if user.id is a valid UUID before querying
+      if (!isValidUUID(user.id)) {
+        console.log('Invalid user ID format for notifications query');
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
@@ -62,7 +67,11 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         .order('created_at', { ascending: false })
         .limit(50);
         
-      if (error) throw error;
+      if (error) {
+        // Log the error but don't show a toast to the user
+        console.error('Error loading notifications:', error);
+        return;
+      }
       
       // Fix type error by ensuring data conforms to NotificationType
       const typedData = data?.map(notification => ({
@@ -73,12 +82,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setNotifications(typedData);
       
     } catch (error) {
-      console.error('Error loading notifications:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load notifications',
-        variant: 'destructive',
-      });
+      // Log the error but don't show a toast to the user
+      console.error('Error in notifications processing:', error);
     }
   };
 
@@ -86,26 +91,42 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (!user) return;
     
     try {
+      // Check if user.id is a valid UUID before querying
+      if (!isValidUUID(user.id)) {
+        console.log('Invalid user ID format for preferences query');
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('notification_preferences')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single to avoid error if no preferences exist
         
       if (error) {
         if (error.code === 'PGRST116') {
           // No preference record found, create default preferences
           await createDefaultPreferences();
         } else {
-          throw error;
+          // Log the error but don't show a toast to the user
+          console.error('Error loading notification preferences:', error);
         }
-      } else {
+      } else if (data) {
         setPreferences(data);
+      } else {
+        // No data found, create default preferences
+        await createDefaultPreferences();
       }
       
     } catch (error) {
-      console.error('Error loading notification preferences:', error);
+      console.error('Error in preferences processing:', error);
     }
+  };
+
+  // Helper function to validate UUID format
+  const isValidUUID = (id: string): boolean => {
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidPattern.test(id);
   };
 
   const createDefaultPreferences = async () => {
@@ -129,12 +150,15 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         .select()
         .single();
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating default preferences:', error);
+        return;
+      }
       
       setPreferences(data);
       
     } catch (error) {
-      console.error('Error creating default preferences:', error);
+      console.error('Error in createDefaultPreferences:', error);
     }
   };
 
