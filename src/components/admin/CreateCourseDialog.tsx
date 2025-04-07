@@ -965,4 +965,120 @@ export function CreateCourseDialog({ isOpen, onOpenChange, editCourse = null }: 
                       </p>
                       <div className="flex flex-wrap gap-2 mb-4">
                         {form.getValues().tags.map((tag) => (
-                          <
+                          <Badge key={tag} variant="secondary">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Course Structure</h4>
+                        <div className="space-y-3">
+                          {modules.map((module) => (
+                            <div key={module.id} className="border rounded-md p-3">
+                              <h5 className="font-medium">{module.title}</h5>
+                              <p className="text-sm text-muted-foreground">{module.description}</p>
+                              
+                              <div className="mt-2">
+                                <h6 className="text-sm font-medium mb-1">Lessons:</h6>
+                                <ul className="text-sm space-y-1 pl-4">
+                                  {module.lessons.map((lesson) => (
+                                    <li key={lesson.id} className="list-disc list-inside">
+                                      {lesson.title}
+                                    </li>
+                                  ))}
+                                  {module.lessons.length === 0 && (
+                                    <li className="text-muted-foreground">No lessons</li>
+                                  )}
+                                </ul>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="border rounded-md p-4 space-y-4">
+                      {form.getValues().thumbnailUrl && (
+                        <div>
+                          <h4 className="font-medium mb-2">Thumbnail</h4>
+                          <img 
+                            src={form.getValues().thumbnailUrl} 
+                            alt="Course thumbnail" 
+                            className="w-full h-auto rounded-md object-cover"
+                          />
+                        </div>
+                      )}
+                      
+                      <div>
+                        <h4 className="font-medium mb-2">Enrolled Users</h4>
+                        {assignedUsers.length > 0 ? (
+                          <div className="space-y-2">
+                            {assignedUsers.map(userId => {
+                              const user = availableUsers.find(u => u.id === userId);
+                              return user ? (
+                                <div key={userId} className="flex justify-between items-center p-2 bg-muted rounded-md text-sm">
+                                  <span>{user.name}</span>
+                                  <Badge variant="outline" className="capitalize text-xs">
+                                    {user.role}
+                                  </Badge>
+                                </div>
+                              ) : null;
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">
+                            No users assigned to this course
+                          </p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <h4 className="font-medium mb-2">Course Stats</h4>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div className="bg-muted p-2 rounded-md">
+                            <div className="text-muted-foreground">Modules</div>
+                            <div className="font-medium">{modules.length}</div>
+                          </div>
+                          <div className="bg-muted p-2 rounded-md">
+                            <div className="text-muted-foreground">Lessons</div>
+                            <div className="font-medium">
+                              {modules.reduce((total, module) => total + module.lessons.length, 0)}
+                            </div>
+                          </div>
+                          <div className="bg-muted p-2 rounded-md">
+                            <div className="text-muted-foreground">Enrolled</div>
+                            <div className="font-medium">{assignedUsers.length}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <DialogFooter className="gap-2 sm:gap-0">
+              {currentStep !== "basic" && (
+                <Button type="button" variant="outline" onClick={goBack}>
+                  Back
+                </Button>
+              )}
+              <Button type="submit">
+                {currentStep === "review" 
+                  ? editCourse 
+                    ? "Save Changes" 
+                    : "Create Course" 
+                  : currentStep === "modules" && modules.length > 0
+                    ? "Continue" 
+                    : "Next"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
