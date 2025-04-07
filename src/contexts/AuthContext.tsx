@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AuthContextType, User, UserRole } from '@/types/auth';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from "@/hooks/use-toast";
 
 // Mock data for development
 const MOCK_USERS = [
@@ -16,7 +16,6 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
 
   useEffect(() => {
     // Check for saved auth state in localStorage
