@@ -2,7 +2,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { Book, FileText, Home, Settings, Users } from 'lucide-react';
+import { Book, FileText, Home, Settings, Users, User, Edit, BookOpen, FileSignature, Building } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -22,25 +22,65 @@ export function AppSidebar() {
     navigate('/');
   };
 
-  // Define navigation items based on user role
-  const navigationItems = [
+  // Define common navigation items
+  const commonItems = [
     {
       title: 'Dashboard',
       icon: Home,
       href: '/dashboard',
       roles: ['client', 'expert', 'employee', 'admin'],
     },
+  ];
+
+  // Role-specific navigation items
+  const clientItems = [
     {
       title: 'Courses',
       icon: Book,
       href: '/courses',
-      roles: ['client', 'expert', 'employee', 'admin'],
+      roles: ['client'],
     },
     {
       title: 'Documents',
       icon: FileText,
       href: '/documents',
-      roles: ['client', 'expert', 'employee', 'admin'],
+      roles: ['client'],
+    },
+  ];
+
+  const expertItems = [
+    {
+      title: 'My Profile',
+      icon: User,
+      href: '/expert/profile',
+      roles: ['expert'],
+    },
+    {
+      title: 'My Contributions',
+      icon: FileSignature,
+      href: '/expert/contributions',
+      roles: ['expert'],
+    },
+    {
+      title: 'Documents',
+      icon: FileText,
+      href: '/documents',
+      roles: ['expert'],
+    },
+  ];
+
+  const employeeItems = [
+    {
+      title: 'Courses',
+      icon: Book,
+      href: '/courses',
+      roles: ['employee'],
+    },
+    {
+      title: 'Documents',
+      icon: FileText,
+      href: '/documents',
+      roles: ['employee'],
     },
   ];
 
@@ -54,7 +94,7 @@ export function AppSidebar() {
     },
     {
       title: 'Course Management',
-      icon: Book,
+      icon: BookOpen,
       href: '/admin/courses',
       roles: ['admin'],
     },
@@ -73,13 +113,24 @@ export function AppSidebar() {
   ];
 
   // Filter navigation items based on user role
-  const filteredNavItems = navigationItems.filter(
-    item => user && item.roles.includes(user.role)
-  );
+  const getNavItems = () => {
+    if (!user) return [];
+    
+    switch (user.role) {
+      case 'client':
+        return [...commonItems, ...clientItems];
+      case 'expert':
+        return [...commonItems, ...expertItems];
+      case 'employee':
+        return [...commonItems, ...employeeItems];
+      case 'admin':
+        return [...commonItems, ...adminItems];
+      default:
+        return commonItems;
+    }
+  };
 
-  const filteredAdminItems = adminItems.filter(
-    item => user && item.roles.includes(user.role)
-  );
+  const navItems = getNavItems();
 
   return (
     <Sidebar>
@@ -97,7 +148,7 @@ export function AppSidebar() {
         <div className="px-4 py-2">
           <div className="text-xs uppercase text-muted-foreground mb-2">Main Navigation</div>
           <SidebarMenu>
-            {filteredNavItems.map((item) => (
+            {navItems.map((item) => (
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton asChild>
                   <Button
@@ -113,28 +164,6 @@ export function AppSidebar() {
             ))}
           </SidebarMenu>
         </div>
-
-        {filteredAdminItems.length > 0 && (
-          <div className="px-4 py-2">
-            <div className="text-xs uppercase text-muted-foreground mb-2">Administration</div>
-            <SidebarMenu>
-              {filteredAdminItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton asChild>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start"
-                      onClick={() => navigate(item.href)}
-                    >
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {item.title}
-                    </Button>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </div>
-        )}
       </SidebarContent>
       <SidebarFooter className="border-t p-4">
         <div className="flex items-center justify-between">
