@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { DOCUMENTS, getDocumentsForUser } from '@/services/mockData';
 import { useToast } from '@/components/ui/use-toast';
 import { v4 as uuidv4 } from '@/lib/utils';
+import { DocumentAnnotation, DocumentVersion, DocumentActivity } from '@/types/document';
 
 // Standard document categories
 const DOCUMENT_CATEGORIES = [
@@ -53,6 +54,9 @@ const Documents = () => {
     const document = DOCUMENTS.find(doc => doc.id === documentId);
     if (document) {
       document.reviewed = reviewed;
+      
+      // Record activity
+      logDocumentActivity(documentId, 'update', reviewed ? 'Marked as reviewed' : 'Marked as unreviewed');
     }
   };
 
@@ -70,10 +74,137 @@ const Documents = () => {
         content: comment,
         createdAt: new Date()
       });
+      
+      // Record activity
+      logDocumentActivity(documentId, 'comment', 'Added a comment');
     }
   };
+  
+  const handleAddAnnotation = (annotation: DocumentAnnotation) => {
+    const document = DOCUMENTS.find(doc => doc.id === annotation.documentId);
+    if (document) {
+      if (!document.annotations) {
+        document.annotations = [];
+      }
+      
+      document.annotations.push(annotation);
+      
+      // Record activity
+      logDocumentActivity(document.id, 'annotate', 'Added an annotation');
+      
+      toast({
+        title: 'Annotation added',
+        description: `An annotation has been added to "${document.name}"`,
+      });
+    }
+  };
+  
+  const handleAddTag = (documentId: string, tag: string) => {
+    const document = DOCUMENTS.find(doc => doc.id === documentId);
+    if (document) {
+      if (!document.tags) {
+        document.tags = [];
+      }
+      
+      document.tags.push(tag);
+      
+      // Record activity
+      logDocumentActivity(documentId, 'update', `Added tag "${tag}"`);
+    }
+  };
+  
+  const handleRemoveTag = (documentId: string, tag: string) => {
+    const document = DOCUMENTS.find(doc => doc.id === documentId);
+    if (document && document.tags) {
+      document.tags = document.tags.filter(t => t !== tag);
+      
+      // Record activity
+      logDocumentActivity(documentId, 'update', `Removed tag "${tag}"`);
+    }
+  };
+  
+  const handleRevertToVersion = (documentId: string, versionId: string) => {
+    const document = DOCUMENTS.find(doc => doc.id === documentId);
+    if (document && document.versionHistory) {
+      const version = document.versionHistory.find(v => v.id === versionId);
+      if (version) {
+        // In a real app, we would update the document content with the version content
+        // For this demo, we'll just log it
+        
+        // Record activity
+        logDocumentActivity(documentId, 'version', `Reverted to version ${version.version}`);
+        
+        toast({
+          title: 'Version restored',
+          description: `Document reverted to version ${version.version}`,
+        });
+      }
+    }
+  };
+  
+  const handleDownloadDocument = (documentId: string) => {
+    // Record activity
+    logDocumentActivity(documentId, 'download', 'Downloaded the document');
+  };
+  
+  const handleViewDocument = (documentId: string) => {
+    // Record activity
+    logDocumentActivity(documentId, 'view', 'Viewed the document');
+  };
 
-  const handleUploadDocument = (file: File, category: string) => {
+  const handleUploadDocument = (
+    file: File, 
+    category: string, 
+    metadata?: Record<string, string>, 
+    tags?: string[], 
+    isNewVersion?: boolean, 
+    existingDocumentId?: string, 
+    versionNotes?: string
+  ) => {
+    // Handle new version of existing document
+    if (isNewVersion && existingDocumentId) {
+      const existingDocument = DOCUMENTS.find(doc => doc.id === existingDocumentId);
+      if (existingDocument) {
+        // Determine next version number
+        const nextVersion = (existingDocument.versionHistory?.length || 0) + 1;
+        
+        // Create new version
+        const newVersion: DocumentVersion = {
+          id: uuidv4(),
+          documentId: existingDocument.id,
+          version: nextVersion,
+          url: URL.createObjectURL(file),
+          uploadedBy: user.id,
+          uploadedAt: new Date(),
+          changes: versionNotes || `Version ${nextVersion}`,
+          size: file.size
+        };
+        
+        // Add version to history
+        if (!existingDocument.versionHistory) {
+          existingDocument.versionHistory = [];
+        }
+        existingDocument.versionHistory.push(newVersion);
+        
+        // Update document properties
+        existingDocument.url = newVersion.url;
+        existingDocument.size = file.size;
+        existingDocument.uploadedAt = new Date();
+        existingDocument.version = nextVersion;
+        
+        // Record activity
+        logDocumentActivity(existingDocument.id, 'version', `Uploaded version ${nextVersion}`);
+        
+        toast({
+          title: 'New version uploaded',
+          description: `Version ${nextVersion} of "${existingDocument.name}" has been uploaded.`,
+        });
+        
+        return;
+      }
+    }
+    
+    // Handle new document
     const newDocument = {
       id: uuidv4(),
       name: file.name,
@@ -85,14 +216,57 @@ const Documents = () => {
       category,
       visibleTo: [user.id],
       reviewed: false,
+      version: 1,
+      versionHistory: [
+        {
+          id: uuidv4(),
+          documentId: '', // Will be updated after creating the document
+          version: 1,
+          url: URL.createObjectURL(file),
+          uploadedBy: user.id,
+          uploadedAt: new Date(),
+          changes: 'Initial version',
+          size: file.size
+        }
+      ],
+      tags,
+      metadata
     };
     
+    // Update document ID in version history
+    newDocument.versionHistory[0].documentId = newDocument.id;
+    
+    // Add to documents
     DOCUMENTS.push(newDocument);
+    
+    // Record activity
+    logDocumentActivity(newDocument.id, 'upload', 'Uploaded new document');
     
     toast({
       title: 'Document uploaded',
       description: `${file.name} has been uploaded successfully.`,
     });
+  };
+  
+  const logDocumentActivity = (documentId: string, activity: 'upload' | 'download' | 'view' | 'update' | 'delete' | 'comment' | 'annotate' | 'version', details?: string) => {
+    const document = DOCUMENTS.find(doc => doc.id === documentId);
+    if (!document) return;
+    
+    // In a real app, we would persist this to a database
+    const activityRecord: DocumentActivity = {
+      id: uuidv4(),
+      documentId,
+      userId: user.id,
+      userName: user.name,
+      activity,
+      details,
+      timestamp: new Date()
+    };
+    
+    console.log('Document activity logged:', activityRecord);
+    
+    // In a real app, this would be sent to the server
+    return activityRecord;
   };
 
   return (
@@ -108,11 +282,17 @@ const Documents = () => {
         documents={userDocuments} 
         onMarkAsReviewed={handleMarkAsReviewed}
         onAddComment={handleAddComment}
+        onAddAnnotation={handleAddAnnotation}
+        onAddTag={handleAddTag}
+        onRemoveTag={handleRemoveTag}
         onUploadClick={() => setShowUploadModal(true)}
+        onDownload={handleDownloadDocument}
+        onView={handleViewDocument}
       />
       
       <DocumentUpload 
         onUpload={handleUploadDocument}
+        existingDocuments={userDocuments}
       />
     </div>
   );
