@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -49,7 +48,6 @@ const courseFormSchema = z.object({
   title: z.string().min(3, { message: "Title must be at least 3 characters" }),
   description: z.string().min(10, { message: "Description must be at least 10 characters" }),
   tags: z.array(z.string()).min(1, { message: "Add at least one tag" }),
-  visibleTo: z.array(z.enum(["client", "expert", "employee", "admin"])).min(1, { message: "Select at least one role" }),
   thumbnailUrl: z.string().optional(),
 });
 
@@ -95,7 +93,6 @@ export function CreateCourseDialog({ isOpen, onOpenChange, editCourse = null }: 
       title: editCourse?.title || "",
       description: editCourse?.description || "",
       tags: editCourse?.tags || [],
-      visibleTo: editCourse?.visibleTo || ["client"],
       thumbnailUrl: editCourse?.thumbnailUrl || "",
     },
   });
@@ -107,31 +104,24 @@ export function CreateCourseDialog({ isOpen, onOpenChange, editCourse = null }: 
         title: editCourse.title,
         description: editCourse.description,
         tags: editCourse.tags,
-        visibleTo: editCourse.visibleTo,
         thumbnailUrl: editCourse.thumbnailUrl || "",
       });
       setModules(editCourse.modules);
+      setAssignedUsers(editCourse.enrolledUsers || []);
     } else {
       form.reset({
         title: "",
         description: "",
         tags: [],
-        visibleTo: ["client"],
         thumbnailUrl: "",
       });
       setModules([]);
+      setAssignedUsers([]);
     }
     setCurrentStep("basic");
     setCurrentModule(null);
     setCurrentLesson(null);
   }, [editCourse, form]);
-
-  const roles = [
-    { value: "client", label: "Client" },
-    { value: "expert", label: "Expert" },
-    { value: "employee", label: "Employee" },
-    { value: "admin", label: "Admin" },
-  ];
 
   // Handle tag input
   const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -151,15 +141,12 @@ export function CreateCourseDialog({ isOpen, onOpenChange, editCourse = null }: 
     );
   };
 
-  const toggleRole = (role: "client" | "expert" | "employee" | "admin") => {
-    const currentRoles = form.getValues().visibleTo;
-    if (currentRoles.includes(role)) {
-      form.setValue(
-        "visibleTo",
-        currentRoles.filter((r) => r !== role)
-      );
+  // Toggle user assignment
+  const toggleUserAssignment = (userId: string) => {
+    if (assignedUsers.includes(userId)) {
+      setAssignedUsers(assignedUsers.filter(id => id !== userId));
     } else {
-      form.setValue("visibleTo", [...currentRoles, role]);
+      setAssignedUsers([...assignedUsers, userId]);
     }
   };
 
@@ -317,15 +304,6 @@ export function CreateCourseDialog({ isOpen, onOpenChange, editCourse = null }: 
     }
   };
 
-  // Toggle user assignment
-  const toggleUserAssignment = (userId: string) => {
-    if (assignedUsers.includes(userId)) {
-      setAssignedUsers(assignedUsers.filter(id => id !== userId));
-    } else {
-      setAssignedUsers([...assignedUsers, userId]);
-    }
-  };
-
   // Form submission
   const onSubmit = (values: CourseFormValues) => {
     if (currentStep === "basic") {
@@ -346,8 +324,8 @@ export function CreateCourseDialog({ isOpen, onOpenChange, editCourse = null }: 
         description: values.description,
         modules: modules,
         tags: values.tags,
-        visibleTo: values.visibleTo,
         thumbnailUrl: values.thumbnailUrl,
+        enrolledUsers: assignedUsers,
       };
 
       if (editCourse) {
@@ -525,47 +503,11 @@ export function CreateCourseDialog({ isOpen, onOpenChange, editCourse = null }: 
                         </FormItem>
                       )}
                     />
-
-                    <FormField
-                      control={form.control}
-                      name="visibleTo"
-                      render={() => (
-                        <FormItem>
-                          <FormLabel>Visible To</FormLabel>
-                          <FormDescription>
-                            Select which user roles can access this course
-                          </FormDescription>
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {roles.map((role) => (
-                              <Badge
-                                key={role.value}
-                                variant={
-                                  form
-                                    .getValues()
-                                    .visibleTo.includes(
-                                      role.value as "client" | "expert" | "employee" | "admin"
-                                    )
-                                    ? "default"
-                                    : "outline"
-                                }
-                                className="cursor-pointer"
-                                onClick={() =>
-                                  toggleRole(role.value as "client" | "expert" | "employee" | "admin")
-                                }
-                              >
-                                {role.label}
-                              </Badge>
-                            ))}
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                     
                     <FormItem>
                       <FormLabel>Assign Users</FormLabel>
                       <FormDescription>
-                        Manually assign specific users to this course
+                        Select specific users to enroll in this course
                       </FormDescription>
                       <div className="border rounded-md mt-2 overflow-hidden">
                         <div className="max-h-[200px] overflow-y-auto">
@@ -1023,97 +965,4 @@ export function CreateCourseDialog({ isOpen, onOpenChange, editCourse = null }: 
                       </p>
                       <div className="flex flex-wrap gap-2 mb-4">
                         {form.getValues().tags.map((tag) => (
-                          <Badge key={tag} variant="secondary">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                      <div className="mb-4">
-                        <span className="text-sm font-medium">Visible to: </span>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {form.getValues().visibleTo.map((role) => (
-                            <Badge key={role}>{role}</Badge>
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <h4 className="font-medium mb-2">
-                          {modules.length} Module{modules.length !== 1 ? "s" : ""}
-                        </h4>
-                        <div className="space-y-2">
-                          {modules.map((module) => (
-                            <div key={module.id} className="border rounded-md p-2">
-                              <h5 className="font-medium">{module.title}</h5>
-                              <p className="text-xs text-muted-foreground">{module.description}</p>
-                              <div className="mt-2 pl-2 border-l">
-                                <div className="text-sm">
-                                  {module.lessons.length} Lesson{module.lessons.length !== 1 ? "s" : ""}
-                                </div>
-                                <ul className="text-xs list-disc list-inside text-muted-foreground">
-                                  {module.lessons.map((lesson) => (
-                                    <li key={lesson.id}>{lesson.title}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    {form.getValues().thumbnailUrl && (
-                      <div className="border rounded-md p-4 text-center mb-4">
-                        <h4 className="font-medium mb-2">Course Thumbnail</h4>
-                        <img 
-                          src={form.getValues().thumbnailUrl} 
-                          alt="Course thumbnail" 
-                          className="max-h-[150px] mx-auto rounded-md"
-                        />
-                      </div>
-                    )}
-                    
-                    {assignedUsers.length > 0 && (
-                      <div className="border rounded-md p-4">
-                        <h4 className="font-medium mb-2">Assigned Users</h4>
-                        <div className="space-y-2">
-                          {assignedUsers.map(userId => {
-                            const user = availableUsers.find(u => u.id === userId);
-                            return user ? (
-                              <div key={user.id} className="flex justify-between items-center p-2 border rounded">
-                                <span>{user.name}</span>
-                                <Badge variant="outline" className="capitalize text-xs">
-                                  {user.role}
-                                </Badge>
-                              </div>
-                            ) : null;
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <DialogFooter className="flex justify-between">
-              {currentStep !== "basic" && (
-                <Button type="button" variant="outline" onClick={goBack}>
-                  Back
-                </Button>
-              )}
-              <Button type="submit">
-                {currentStep === "review"
-                  ? editCourse ? "Update Course" : "Create Course"
-                  : currentStep === "modules" && modules.length > 0
-                  ? "Next: Review"
-                  : "Next"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
-  );
-}
+                          <
