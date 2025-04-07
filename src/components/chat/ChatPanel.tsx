@@ -26,12 +26,7 @@ export const ChatPanel = () => {
     e.preventDefault();
     if (!messageInput.trim() || !activeChat) return;
     
-    if ('room_id' in activeChat) {
-      sendMessage(messageInput, activeChat.id);
-    } else {
-      sendMessage(messageInput, undefined, activeChat.id);
-    }
-    
+    sendMessage(messageInput, activeChat.id);
     setMessageInput('');
   };
   
@@ -42,25 +37,23 @@ export const ChatPanel = () => {
           <Info className="h-12 w-12 mx-auto text-muted-foreground" />
           <h3 className="text-xl font-medium">No chat selected</h3>
           <p className="text-muted-foreground">
-            Select a contact or room from the sidebar to start messaging
+            {user?.role === 'client' 
+              ? 'Start messaging with Akros Advisory' 
+              : 'Select a contact from the sidebar to start messaging'}
           </p>
         </div>
       </div>
     );
   }
   
-  const chatName = 'name' in activeChat ? activeChat.name : 'Unknown';
-  const isRoom = 'room_id' in activeChat;
+  const chatName = activeChat.name || 'Unknown';
   
   return (
     <div className="flex-1 flex flex-col h-full">
       {/* Chat header */}
       <div className="p-4 border-b flex items-center">
         <Avatar className="h-10 w-10 mr-3">
-          <AvatarImage 
-            src={isRoom ? undefined : ('avatar' in activeChat ? activeChat.avatar : undefined)} 
-            alt={chatName} 
-          />
+          <AvatarImage src={activeChat.avatar} alt={chatName} />
           <AvatarFallback>
             {chatName.substring(0, 2).toUpperCase()}
           </AvatarFallback>
@@ -68,9 +61,7 @@ export const ChatPanel = () => {
         <div className="flex-1">
           <h3 className="font-medium">{chatName}</h3>
           <p className="text-xs text-muted-foreground">
-            {isRoom 
-              ? `${('members' in activeChat && activeChat.members) ? activeChat.members.length : 0} members` 
-              : ('online' in activeChat && activeChat.online ? 'Online' : 'Offline')}
+            {activeChat.online ? 'Online' : 'Offline'}
           </p>
         </div>
       </div>

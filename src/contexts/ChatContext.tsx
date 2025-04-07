@@ -3,18 +3,15 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { ChatMessage, ChatRoom, ChatContact } from '@/types/chat';
+import { ChatMessage, ChatContact } from '@/types/chat';
 
 interface ChatContextType {
-  activeChat: ChatRoom | ChatContact | null;
-  setActiveChat: (chat: ChatRoom | ChatContact | null) => void;
+  activeChat: ChatContact | null;
+  setActiveChat: (chat: ChatContact | null) => void;
   messages: ChatMessage[];
-  sendMessage: (content: string, roomId?: string, recipientId?: string) => Promise<void>;
+  sendMessage: (content: string, recipientId: string) => Promise<void>;
   markAsRead: (messageId: string) => Promise<void>;
   isLoading: boolean;
-  rooms: ChatRoom[];
-  createRoom: (name: string, memberIds: string[]) => Promise<ChatRoom | null>;
-  joinRoom: (roomId: string) => Promise<void>;
   contacts: ChatContact[];
   refreshChatData: () => Promise<void>;
 }
@@ -23,13 +20,12 @@ const ChatContext = createContext<ChatContextType | null>(null);
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  const [activeChat, setActiveChat] = useState<ChatRoom | ChatContact | null>(null);
+  const [activeChat, setActiveChat] = useState<ChatContact | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [contacts, setContacts] = useState<ChatContact[]>([]);
 
-  // Load user's chats and rooms on login
+  // Load user's contacts on login
   useEffect(() => {
     if (user) {
       refreshChatData();
@@ -58,46 +54,49 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     
     try {
-      // Load rooms
-      const { data: roomsData, error: roomsError } = await supabase
-        .from('chat_rooms')
-        .select(`
-          *,
-          chat_room_members!inner(user_id)
-        `)
-        .eq('chat_room_members.user_id', user.id);
+      // Load contacts based on user role
+      if (user.role === 'admin') {
+        // Admins can see all users who have sent messages
+        const { data: messagesData, error: messagesError } = await supabase
+          .from('chat_messages')
+          .select('*')
+          .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
+          .is('room_id', null)
+          .order('created_at', { ascending: false });
+          
+        if (messagesError) throw messagesError;
         
-      if (roomsError) throw roomsError;
-      
-      // Load contacts (other users the current user has chatted with)
-      const { data: messagesData, error: messagesError } = await supabase
-        .from('chat_messages')
-        .select('*')
-        .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
-        .is('room_id', null)
-        .order('created_at', { ascending: false });
+        // Extract unique user IDs from direct messages (excluding admins)
+        const contactIds = new Set<string>();
+        messagesData.forEach(msg => {
+          if (msg.sender_id !== user.id) contactIds.add(msg.sender_id);
+          if (msg.recipient_id && msg.recipient_id !== user.id) contactIds.add(msg.recipient_id);
+        });
         
-      if (messagesError) throw messagesError;
-      
-      // Extract unique user IDs from direct messages
-      const contactIds = new Set<string>();
-      messagesData.forEach(msg => {
-        if (msg.sender_id !== user.id) contactIds.add(msg.sender_id);
-        if (msg.recipient_id && msg.recipient_id !== user.id) contactIds.add(msg.recipient_id);
-      });
-      
-      // For a real app, we would fetch user details from a users or profiles table
-      // For now, we'll use mock data
-      const mockContacts: ChatContact[] = Array.from(contactIds).map(id => ({
-        id,
-        name: `User ${id.substring(0, 5)}`,
-        avatar: '/placeholder.svg',
-        online: Math.random() > 0.5,
-        unread_count: Math.floor(Math.random() * 5)
-      }));
-      
-      setRooms(roomsData || []);
-      setContacts(mockContacts);
+        // For a real app, we would fetch user details from a users or profiles table
+        // For now, we'll use mock data
+        const mockContacts: ChatContact[] = Array.from(contactIds).map(id => ({
+          id,
+          name: `User ${id.substring(0, 5)}`,
+          avatar: '/placeholder.svg',
+          online: Math.random() > 0.5,
+          unread_count: Math.floor(Math.random() * 5)
+        }));
+        
+        setContacts(mockContacts);
+      } else {
+        // Non-admin users only see "Akros Advisory" (represented by an admin)
+        // In a real app, you would query for users with admin role
+        const akrosAdvisory: ChatContact = {
+          id: '4', // Admin user ID
+          name: 'Akros Advisory',
+          avatar: '/placeholder.svg',
+          online: true,
+          unread_count: 0
+        };
+        
+        setContacts([akrosAdvisory]);
+      }
     } catch (error) {
       console.error('Error loading chat data:', error);
       toast({
@@ -116,20 +115,13 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     
     try {
-      let query = supabase
+      // Direct message only (no rooms)
+      const query = supabase
         .from('chat_messages')
         .select('*')
+        .or(`and(sender_id.eq.${user.id},recipient_id.eq.${activeChat.id}),and(sender_id.eq.${activeChat.id},recipient_id.eq.${user.id})`)
+        .is('room_id', null)
         .order('created_at', { ascending: true });
-        
-      if ('room_id' in activeChat && activeChat.id) {
-        // Room chat
-        query = query.eq('room_id', activeChat.id);
-      } else {
-        // Direct message
-        query = query
-          .or(`and(sender_id.eq.${user.id},recipient_id.eq.${activeChat.id}),and(sender_id.eq.${activeChat.id},recipient_id.eq.${user.id})`)
-          .is('room_id', null);
-      }
       
       const { data, error } = await query;
       
@@ -156,30 +148,18 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const sendMessage = async (content: string, roomId?: string, recipientId?: string) => {
+  const sendMessage = async (content: string, recipientId: string) => {
     if (!user) return;
     if (!content.trim()) return;
     
     try {
-      // Fix type error by explicitly defining the message with the required content field
       const newMessage = {
         sender_id: user.id,
-        content, // This is now explicitly defined
+        content, 
         read: false,
         recipient_id: recipientId,
-        room_id: roomId
+        room_id: null
       };
-      
-      // If no recipientId and no roomId were provided, but we have an activeChat
-      if (!recipientId && !roomId && activeChat) {
-        if ('room_id' in activeChat) {
-          newMessage.room_id = activeChat.id;
-          newMessage.recipient_id = undefined;
-        } else {
-          newMessage.recipient_id = activeChat.id;
-          newMessage.room_id = undefined;
-        }
-      }
       
       const { error } = await supabase
         .from('chat_messages')
@@ -214,84 +194,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const createRoom = async (name: string, memberIds: string[]): Promise<ChatRoom | null> => {
-    if (!user) return null;
-    
-    try {
-      // First create the room
-      const { data: roomData, error: roomError } = await supabase
-        .from('chat_rooms')
-        .insert({
-          name,
-          created_by: user.id
-        })
-        .select()
-        .single();
-        
-      if (roomError) throw roomError;
-      
-      // Add all members to the room
-      const allMembers = [...memberIds, user.id];
-      const memberInserts = allMembers.map(memberId => ({
-        room_id: roomData!.id,
-        user_id: memberId
-      }));
-      
-      const { error: membersError } = await supabase
-        .from('chat_room_members')
-        .insert(memberInserts);
-        
-      if (membersError) throw membersError;
-      
-      toast({
-        title: 'Success',
-        description: `Chat room "${name}" created`
-      });
-      
-      await refreshChatData();
-      return roomData;
-      
-    } catch (error) {
-      console.error('Error creating room:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to create chat room',
-        variant: 'destructive',
-      });
-      return null;
-    }
-  };
-
-  const joinRoom = async (roomId: string) => {
-    if (!user) return;
-    
-    try {
-      const { error } = await supabase
-        .from('chat_room_members')
-        .insert({
-          room_id: roomId,
-          user_id: user.id
-        });
-        
-      if (error) throw error;
-      
-      toast({
-        title: 'Success',
-        description: 'Joined chat room'
-      });
-      
-      await refreshChatData();
-      
-    } catch (error) {
-      console.error('Error joining room:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to join chat room',
-        variant: 'destructive',
-      });
-    }
-  };
-
   const subscribeToMessages = () => {
     if (!user) return null;
     
@@ -311,13 +213,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const newMessage = payload.new as unknown as ChatMessage;
             
             // Check if message belongs to active chat
-            if (activeChat) {
-              if ('room_id' in activeChat && activeChat.id === newMessage.room_id) {
-                setMessages(prev => [...prev, newMessage]);
-              } else if (activeChat.id === newMessage.sender_id) {
-                setMessages(prev => [...prev, newMessage]);
-                markAsRead(newMessage.id);
-              }
+            if (activeChat && activeChat.id === newMessage.sender_id) {
+              setMessages(prev => [...prev, newMessage]);
+              markAsRead(newMessage.id);
             }
             
             // Create notification for new message
@@ -364,9 +262,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         sendMessage,
         markAsRead,
         isLoading,
-        rooms,
-        createRoom,
-        joinRoom,
         contacts,
         refreshChatData
       }}

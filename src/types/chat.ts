@@ -11,24 +11,6 @@ export interface ChatMessage {
   sender_avatar?: string; // For display purposes
 }
 
-export interface ChatRoom {
-  id: string;
-  name: string;
-  created_by: string;
-  created_at: string;
-  members?: ChatRoomMember[];
-  last_message?: ChatMessage;
-}
-
-export interface ChatRoomMember {
-  id: string;
-  room_id: string;
-  user_id: string;
-  joined_at: string;
-  user_name?: string; // For display purposes
-  user_avatar?: string; // For display purposes
-}
-
 export interface ChatContact {
   id: string;
   name: string;
