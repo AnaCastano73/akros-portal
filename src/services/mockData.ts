@@ -1,4 +1,3 @@
-
 import { Course, CourseProgress } from '@/types/course';
 import { Document } from '@/types/document';
 import { User, UserRole } from '@/types/auth';
@@ -19,7 +18,7 @@ export const COURSES: Course[] = [
     description: 'Learn the basics of digital health technology and its applications in modern healthcare.',
     thumbnailUrl: '/placeholder.svg',
     tags: ['Foundations', 'Technology'],
-    visibleTo: ['client', 'expert', 'employee', 'admin'],
+    enrolledUsers: ['1', '2', '3', '4'], // All users enrolled
     modules: [
       {
         id: 'm1',
@@ -76,7 +75,7 @@ export const COURSES: Course[] = [
     description: 'Develop effective strategies for implementing digital health solutions in organizations.',
     thumbnailUrl: '/placeholder.svg',
     tags: ['Strategy', 'Leadership'],
-    visibleTo: ['client', 'expert', 'admin'],
+    enrolledUsers: ['1', '2', '4'], // Client, Expert, and Admin enrolled
     modules: [
       {
         id: 'm3',
@@ -102,7 +101,7 @@ export const COURSES: Course[] = [
     description: 'Master the techniques for analyzing health data and generating actionable insights.',
     thumbnailUrl: '/placeholder.svg',
     tags: ['Analytics', 'Data'],
-    visibleTo: ['expert', 'employee', 'admin'],
+    enrolledUsers: ['2', '3', '4'], // Expert, Employee, and Admin enrolled
     modules: [
       {
         id: 'm4',
@@ -207,9 +206,9 @@ export const DOCUMENTS: Document[] = [
   }
 ];
 
-// Helper function to get courses for a specific user role
-export const getCoursesForRole = (role: UserRole): Course[] => {
-  return COURSES.filter(course => course.visibleTo.includes(role));
+// Helper function to get courses for a specific user
+export const getCoursesForUser = (userId: string): Course[] => {
+  return COURSES.filter(course => course.enrolledUsers.includes(userId));
 };
 
 // Helper function to get documents for a specific user

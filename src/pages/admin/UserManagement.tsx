@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Search, Edit, UserPlus } from 'lucide-react';
+import { Search, Edit, UserPlus, BookOpen } from 'lucide-react';
 import { USERS, COURSES } from '@/services/mockData';
 import { useNavigate } from 'react-router-dom';
 
@@ -91,33 +91,47 @@ const UserManagement = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredUsers.map(user => {
-                // Count courses visible to the user's role
-                const courseCount = COURSES.filter(course => 
-                  course.visibleTo.includes(user.role)
+              {filteredUsers.map(currentUser => {
+                // Count courses enrolled to this user
+                const enrolledCourseCount = COURSES.filter(course => 
+                  course.enrolledUsers.includes(currentUser.id)
                 ).length;
                 
                 return (
-                  <TableRow key={user.id}>
+                  <TableRow key={currentUser.id}>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <div className="h-8 w-8 rounded-full bg-gray-200">
                           <img 
-                            src={user.avatar || '/placeholder.svg'} 
-                            alt={user.name} 
+                            src={currentUser.avatar || '/placeholder.svg'} 
+                            alt={currentUser.name} 
                             className="h-full w-full rounded-full object-cover" 
                           />
                         </div>
-                        <span className="font-medium">{user.name}</span>
+                        <span className="font-medium">{currentUser.name}</span>
                       </div>
                     </TableCell>
-                    <TableCell>{user.email}</TableCell>
+                    <TableCell>{currentUser.email}</TableCell>
                     <TableCell>
-                      <Badge className="capitalize">{user.role}</Badge>
+                      <Badge className="capitalize">{currentUser.role}</Badge>
                     </TableCell>
-                    <TableCell>{courseCount}</TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon">
+                      <div className="flex items-center gap-1">
+                        <Badge 
+                          variant="secondary"
+                          className="flex items-center gap-1"
+                        >
+                          <BookOpen className="h-3 w-3" />
+                          {enrolledCourseCount}
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        title="Edit User"
+                      >
                         <Edit className="h-4 w-4" />
                       </Button>
                     </TableCell>

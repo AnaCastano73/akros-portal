@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -5,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Search, Edit, Plus, Trash } from 'lucide-react';
+import { Search, Edit, Plus, Trash, Users } from 'lucide-react';
 import { COURSES } from '@/services/mockData';
 import { useNavigate } from 'react-router-dom';
 import { CreateCourseDialog } from '@/components/admin/CreateCourseDialog';
@@ -59,6 +60,15 @@ const CourseManagement = () => {
   const handleEditCourse = (course) => {
     setSelectedCourse(course);
     setIsCreateDialogOpen(true);
+  };
+
+  const handleManageEnrollments = (course) => {
+    // This would open a dialog to manage course enrollments
+    // For now, just show a toast
+    toast({
+      title: "Manage Enrollments",
+      description: `You can manage enrollments for "${course.title}" here.`,
+    });
   };
 
   if (isLoading) {
@@ -127,7 +137,7 @@ const CourseManagement = () => {
                 <TableHead>Modules</TableHead>
                 <TableHead>Lessons</TableHead>
                 <TableHead>Tags</TableHead>
-                <TableHead>Visible To</TableHead>
+                <TableHead>Enrolled Users</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -156,16 +166,20 @@ const CourseManagement = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {course.visibleTo.map(role => (
-                          <Badge key={role} className="capitalize text-xs">
-                            {role}
-                          </Badge>
-                        ))}
-                      </div>
+                      <Badge variant="secondary">
+                        {course.enrolledUsers.length} users
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => handleManageEnrollments(course)}
+                          title="Manage Enrollments"
+                        >
+                          <Users className="h-4 w-4" />
+                        </Button>
                         <Button 
                           variant="ghost" 
                           size="icon"

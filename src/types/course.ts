@@ -33,8 +33,8 @@ export interface Course {
   thumbnailUrl?: string;
   modules: Module[];
   tags: string[];
-  visibleTo: ('client' | 'expert' | 'employee' | 'admin')[];
-  assignedUsers?: string[];
+  // Remove visibleTo array and replace with enrolledUsers
+  enrolledUsers: string[]; // Array of user IDs that are enrolled in this course
 }
 
 export interface CourseProgress {

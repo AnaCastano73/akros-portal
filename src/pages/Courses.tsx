@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { CoursesList } from '@/components/courses/CoursesList';
 import { useAuth } from '@/contexts/AuthContext';
-import { getCoursesForRole, getCourseProgressForUser } from '@/services/mockData';
+import { getCoursesForUser, getCourseProgressForUser } from '@/services/mockData';
 
 const Courses = () => {
   const { user } = useAuth();
@@ -34,7 +34,7 @@ const Courses = () => {
     );
   }
 
-  const userCourses = getCoursesForRole(user.role);
+  const userCourses = getCoursesForUser(user.id);
   const progress = getCourseProgressForUser(user.id);
 
   return (
@@ -42,7 +42,7 @@ const Courses = () => {
       <div>
         <h1 className="text-3xl font-bold tracking-tight font-heading">Courses</h1>
         <p className="text-muted-foreground">
-          Browse and access your available courses
+          Browse and access your enrolled courses
         </p>
       </div>
       

@@ -46,7 +46,7 @@ const CourseView = () => {
     return (
       <div className="text-center py-20">
         <h2 className="text-2xl font-bold mb-4">Course Not Found</h2>
-        <p className="text-muted-foreground mb-6">The course you're looking for doesn't exist or you don't have access to it.</p>
+        <p className="text-muted-foreground mb-6">The course you're looking for doesn't exist.</p>
         <button
           className="bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-md"
           onClick={() => navigate('/courses')}
@@ -57,12 +57,12 @@ const CourseView = () => {
     );
   }
 
-  // Check if user has access to this course
-  if (!course.visibleTo.includes(user.role)) {
+  // Check if user is enrolled in this course
+  if (!course.enrolledUsers.includes(user.id)) {
     return (
       <div className="text-center py-20">
         <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-        <p className="text-muted-foreground mb-6">You don't have permission to access this course.</p>
+        <p className="text-muted-foreground mb-6">You are not enrolled in this course.</p>
         <button
           className="bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-md"
           onClick={() => navigate('/courses')}

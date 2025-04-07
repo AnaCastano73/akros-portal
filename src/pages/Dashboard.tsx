@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +7,7 @@ import { CourseCard } from '@/components/courses/CourseCard';
 import { DocumentCard } from '@/components/documents/DocumentCard';
 import { Book, BookOpen, FileText, Users, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getCoursesForRole, getCourseProgressForUser, getDocumentsForUser, COURSES, DOCUMENTS } from '@/services/mockData';
+import { getCoursesForUser, getCourseProgressForUser, getDocumentsForUser, COURSES, DOCUMENTS } from '@/services/mockData';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -21,7 +20,7 @@ const Dashboard = () => {
   if (!user) return null;
 
   // Get relevant data for the user
-  const userCourses = getCoursesForRole(user.role);
+  const userCourses = getCoursesForUser(user.id);
   const courseProgress = getCourseProgressForUser(user.id);
   const userDocuments = getDocumentsForUser(user.id);
 
