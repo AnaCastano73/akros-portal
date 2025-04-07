@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -18,6 +19,10 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				heading: ['Libre Baskerville', 'serif'],
+				body: ['Avenir', 'system-ui', 'sans-serif'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -61,7 +66,21 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				brand: {
+					DEFAULT: '#19ac91',
+					50: '#eefbf8',
+					100: '#d5f5ed',
+					200: '#aeebdd',
+					300: '#77dcc6',
+					400: '#41c7ac',
+					500: '#19ac91',
+					600: '#108976',
+					700: '#106e61',
+					800: '#11584f',
+					900: '#124943',
+					950: '#062a27',
+				},
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
