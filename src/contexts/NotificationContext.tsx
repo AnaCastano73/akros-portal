@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 // Use type-only import to avoid conflict with global Notification
-import type { Notification, NotificationPreferences } from '@/types/notification';
+import type { Notification, NotificationPreferences, NotificationType } from '@/types/notification';
 
 interface NotificationContextType {
   notifications: Notification[];
@@ -38,15 +38,17 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (user) {
       loadNotifications();
       loadPreferences();
-      subscribeToNotifications();
+      const channel = subscribeToNotifications();
+      
+      return () => {
+        if (channel) {
+          supabase.removeChannel(channel);
+        }
+      };
     } else {
       setNotifications([]);
       setPreferences(null);
     }
-    
-    return () => {
-      unsubscribeFromNotifications();
-    };
   }, [user]);
 
   const loadNotifications = async () => {
@@ -62,7 +64,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         
       if (error) throw error;
       
-      setNotifications(data || []);
+      // Fix type error by ensuring data conforms to NotificationType
+      const typedData = data?.map(notification => ({
+        ...notification,
+        type: notification.type as NotificationType
+      })) || [];
+      
+      setNotifications(typedData);
       
     } catch (error) {
       console.error('Error loading notifications:', error);
@@ -103,7 +111,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const createDefaultPreferences = async () => {
     if (!user) return;
     
-    const defaultPrefs: Partial<NotificationPreferences> = {
+    const defaultPrefs = {
       user_id: user.id,
       new_messages: true,
       mentions: true,
@@ -253,7 +261,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   const subscribeToNotifications = () => {
-    if (!user) return;
+    if (!user) return null;
     
     const channel = supabase
       .channel('notifications')
@@ -266,10 +274,16 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }, 
         payload => {
           if (payload.new) {
-            const newNotification = payload.new as Notification;
+            const newNotification = payload.new as unknown as Notification;
             
             // Add new notification to state
-            setNotifications(prev => [newNotification, ...prev]);
+            setNotifications(prev => [
+              {
+                ...newNotification,
+                type: newNotification.type as NotificationType
+              }, 
+              ...prev
+            ]);
             
             // Show browser notification if enabled
             if (preferences?.browser_notifications && notificationPermission === 'granted') {
@@ -290,10 +304,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       .subscribe();
       
     return channel;
-  };
-  
-  const unsubscribeFromNotifications = () => {
-    supabase.removeChannel('notifications');
   };
 
   return (

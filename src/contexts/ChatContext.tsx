@@ -33,14 +33,14 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (user) {
       refreshChatData();
-      subscribeToMessages();
+      const channel = subscribeToMessages();
+      
+      return () => {
+        if (channel) {
+          supabase.removeChannel(channel);
+        }
+      };
     }
-    
-    return () => {
-      if (user) {
-        unsubscribeFromMessages();
-      }
-    };
   }, [user]);
 
   // Load messages when active chat changes
@@ -161,24 +161,24 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!content.trim()) return;
     
     try {
-      const newMessage: Partial<ChatMessage> = {
+      // Fix type error by explicitly defining the message with the required content field
+      const newMessage = {
         sender_id: user.id,
-        content,
+        content, // This is now explicitly defined
         read: false,
+        recipient_id: recipientId,
+        room_id: roomId
       };
       
-      if (roomId) {
-        newMessage.room_id = roomId;
-      } else if (recipientId) {
-        newMessage.recipient_id = recipientId;
-      } else if (activeChat) {
+      // If no recipientId and no roomId were provided, but we have an activeChat
+      if (!recipientId && !roomId && activeChat) {
         if ('room_id' in activeChat) {
           newMessage.room_id = activeChat.id;
+          newMessage.recipient_id = undefined;
         } else {
           newMessage.recipient_id = activeChat.id;
+          newMessage.room_id = undefined;
         }
-      } else {
-        throw new Error('No recipient specified for message');
       }
       
       const { error } = await supabase
@@ -293,7 +293,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const subscribeToMessages = () => {
-    if (!user) return;
+    if (!user) return null;
     
     const channel = supabase
       .channel('chat-messages')
@@ -328,10 +328,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .subscribe();
       
     return channel;
-  };
-  
-  const unsubscribeFromMessages = () => {
-    supabase.removeChannel('chat-messages');
   };
   
   const createNotification = async (message: ChatMessage) => {
