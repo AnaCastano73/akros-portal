@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +9,7 @@ import { Search, Edit, Plus, Trash } from 'lucide-react';
 import { COURSES } from '@/services/mockData';
 import { useNavigate } from 'react-router-dom';
 import { CreateCourseDialog } from '@/components/admin/CreateCourseDialog';
+import { toast } from "@/hooks/use-toast";
 
 const CourseManagement = () => {
   const { user } = useAuth();
@@ -17,6 +17,8 @@ const CourseManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [courses, setCourses] = useState(COURSES);
 
   useEffect(() => {
     document.title = 'Course Management - Healthwise Advisory Hub';
@@ -34,6 +36,31 @@ const CourseManagement = () => {
     return null;
   }
 
+  // Delete course handler
+  const handleDeleteCourse = (courseId: string) => {
+    const updatedCourses = courses.filter(course => course.id !== courseId);
+    setCourses(updatedCourses);
+    
+    // In a real app, this would be an API call
+    // But for mock data, we're just updating the local state
+    // We'll also update the COURSES array to keep data consistent
+    const indexToRemove = COURSES.findIndex(course => course.id === courseId);
+    if (indexToRemove !== -1) {
+      COURSES.splice(indexToRemove, 1);
+    }
+    
+    toast({
+      title: "Course deleted",
+      description: "The course has been deleted successfully",
+    });
+  };
+
+  // Edit course handler
+  const handleEditCourse = (course) => {
+    setSelectedCourse(course);
+    setIsCreateDialogOpen(true);
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -47,24 +74,32 @@ const CourseManagement = () => {
   }
 
   // Filter courses based on search term
-  const filteredCourses = COURSES.filter(course => 
+  const filteredCourses = courses.filter(course => 
     course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     course.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
     course.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  const handleCreateDialogClose = () => {
+    setIsCreateDialogOpen(false);
+    setSelectedCourse(null);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight font-heading">Course Management</h1>
+          <h1 className="text-3xl font-bold tracking-tight font-avenir">Course Management</h1>
           <p className="text-muted-foreground">
             Create and manage learning content
           </p>
         </div>
         <Button 
           className="bg-brand-500 hover:bg-brand-600"
-          onClick={() => setIsCreateDialogOpen(true)}
+          onClick={() => {
+            setSelectedCourse(null);
+            setIsCreateDialogOpen(true);
+          }}
         >
           <Plus className="mr-2 h-4 w-4" />
           Create New Course
@@ -131,10 +166,19 @@ const CourseManagement = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => handleEditCourse(course)}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => handleDeleteCourse(course.id)}
+                        >
                           <Trash className="h-4 w-4" />
                         </Button>
                       </div>
@@ -156,7 +200,8 @@ const CourseManagement = () => {
 
       <CreateCourseDialog 
         isOpen={isCreateDialogOpen} 
-        onOpenChange={setIsCreateDialogOpen} 
+        onOpenChange={handleCreateDialogClose} 
+        editCourse={selectedCourse}
       />
     </div>
   );

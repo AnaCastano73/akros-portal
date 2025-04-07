@@ -4,8 +4,10 @@ export interface Lesson {
   title: string;
   description: string;
   videoUrl?: string;
+  articleUrl?: string;
   content?: string;
   resources?: Resource[];
+  quiz?: Quiz;
   order: number;
 }
 
@@ -32,6 +34,7 @@ export interface Course {
   modules: Module[];
   tags: string[];
   visibleTo: ('client' | 'expert' | 'employee' | 'admin')[];
+  assignedUsers?: string[];
 }
 
 export interface CourseProgress {
@@ -39,4 +42,22 @@ export interface CourseProgress {
   courseId: string;
   completedLessons: string[]; // IDs of completed lessons
   lastAccessed: Date;
+}
+
+export interface Quiz {
+  id: string;
+  questions: QuizQuestion[];
+}
+
+export interface QuizQuestion {
+  id: string;
+  question: string;
+  type: "multiple_choice" | "short_answer";
+  options?: QuizOption[];
+  correctAnswers?: string[];
+}
+
+export interface QuizOption {
+  id: string;
+  text: string;
 }
