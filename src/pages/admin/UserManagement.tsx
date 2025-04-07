@@ -6,15 +6,19 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Search, Edit, UserPlus, BookOpen } from 'lucide-react';
-import { USERS, COURSES } from '@/services/mockData';
+import { Search, Edit, UserPlus, BookOpen, FileText } from 'lucide-react';
+import { USERS, COURSES, DOCUMENTS } from '@/services/mockData';
 import { useNavigate } from 'react-router-dom';
+import { UserDetailsDialog } from '@/components/admin/UserDetailsDialog';
+import { User } from '@/types/auth';
 
 const UserManagement = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   useEffect(() => {
     document.title = 'User Management - Healthwise Advisory Hub';
@@ -50,6 +54,18 @@ const UserManagement = () => {
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.role.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleViewUserDetails = (selectedUser: User) => {
+    setSelectedUser(selectedUser);
+    setIsDetailsOpen(true);
+  };
+
+  // Count documents for each user
+  const getUserDocumentCount = (userId: string) => {
+    return DOCUMENTS.filter(doc => 
+      doc.visibleTo.includes(userId) || doc.uploadedBy === userId
+    ).length;
+  };
 
   return (
     <div className="space-y-6">
@@ -87,6 +103,7 @@ const UserManagement = () => {
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Enrolled Courses</TableHead>
+                <TableHead>Documents</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -96,6 +113,9 @@ const UserManagement = () => {
                 const enrolledCourseCount = COURSES.filter(course => 
                   course.enrolledUsers.includes(currentUser.id)
                 ).length;
+                
+                // Count documents for this user
+                const userDocumentCount = getUserDocumentCount(currentUser.id);
                 
                 return (
                   <TableRow key={currentUser.id}>
@@ -127,20 +147,40 @@ const UserManagement = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        title="Edit User"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Badge 
+                          variant="secondary"
+                          className="flex items-center gap-1"
+                        >
+                          <FileText className="h-3 w-3" />
+                          {userDocumentCount}
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          title="Edit User"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewUserDetails(currentUser)}
+                        >
+                          View Details
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
               })}
               {filteredUsers.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-6">
+                  <TableCell colSpan={6} className="text-center py-6">
                     No users found. Try adjusting your search.
                   </TableCell>
                 </TableRow>
@@ -149,6 +189,12 @@ const UserManagement = () => {
           </Table>
         </CardContent>
       </Card>
+      
+      <UserDetailsDialog 
+        isOpen={isDetailsOpen}
+        onOpenChange={setIsDetailsOpen}
+        user={selectedUser}
+      />
     </div>
   );
 };
