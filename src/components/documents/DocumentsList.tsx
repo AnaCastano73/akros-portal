@@ -28,7 +28,7 @@ export function DocumentsList({
   onUploadClick
 }: DocumentsListProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   
   // Extract all unique categories from documents
   const allCategories = Array.from(
@@ -41,7 +41,7 @@ export function DocumentsList({
       doc.name.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesCategory = 
-      !selectedCategory || doc.category === selectedCategory;
+      selectedCategory === 'all' || doc.category === selectedCategory;
     
     return matchesSearch && matchesCategory;
   });
@@ -64,7 +64,7 @@ export function DocumentsList({
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Categories</SelectItem>
+              <SelectItem value="all">All Categories</SelectItem>
               {allCategories.map(category => (
                 <SelectItem key={category} value={category}>
                   {category}
@@ -86,7 +86,11 @@ export function DocumentsList({
       </div>
       
       <div className="flex gap-2 flex-wrap">
-        <Badge variant={!selectedCategory ? "default" : "outline"} onClick={() => setSelectedCategory('')} className={!selectedCategory ? "bg-brand-500 hover:bg-brand-600" : ""}>
+        <Badge 
+          variant={selectedCategory === 'all' ? "default" : "outline"} 
+          onClick={() => setSelectedCategory('all')} 
+          className={selectedCategory === 'all' ? "bg-brand-500 hover:bg-brand-600" : ""}
+        >
           All
         </Badge>
         {allCategories.map(category => (
