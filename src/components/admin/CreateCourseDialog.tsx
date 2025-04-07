@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -348,6 +347,8 @@ export function CreateCourseDialog({ isOpen, onOpenChange, editCourse = null }: 
         tags: values.tags,
         visibleTo: values.visibleTo,
         thumbnailUrl: values.thumbnailUrl,
+        price: editCourse?.price || 0, // Default to free if it's a new course
+        assignedUsers: assignedUsers.length > 0 ? assignedUsers : undefined
       };
 
       if (editCourse) {
