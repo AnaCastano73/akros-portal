@@ -13,6 +13,14 @@ import { DocumentUpload } from '@/components/documents/DocumentUpload';
 import { useToast } from '@/components/ui/use-toast';
 import { formatFileSize, v4 as uuidv4 } from '@/lib/utils';
 
+// Standard document categories
+const DOCUMENT_CATEGORIES = [
+  "Session Homework",
+  "Client Materials",
+  "Meeting Notes",
+  "Final Deliverables"
+];
+
 const DocumentManagement = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -21,7 +29,7 @@ const DocumentManagement = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    document.title = 'Document Management - Healthwise Advisory Hub';
+    document.title = 'Document Management - Akros Advisory';
     // Simulate loading
     const timer = setTimeout(() => {
       setIsLoading(false);
@@ -52,11 +60,6 @@ const DocumentManagement = () => {
   const filteredDocuments = DOCUMENTS.filter(doc => 
     doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     doc.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // Extract all unique categories from documents
-  const allCategories = Array.from(
-    new Set(DOCUMENTS.map(doc => doc.category))
   );
 
   const getUserName = (userId: string) => {
@@ -103,7 +106,6 @@ const DocumentManagement = () => {
           </p>
         </div>
         <DocumentUpload 
-          categories={allCategories}
           onUpload={handleUploadDocument}
           trigger={
             <Button className="bg-brand-500 hover:bg-brand-600">

@@ -17,6 +17,14 @@ import { toast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from '@/lib/utils';
 import { FilePlus, Users } from 'lucide-react';
 
+// Standard document categories
+const DOCUMENT_CATEGORIES = [
+  "Session Homework",
+  "Client Materials",
+  "Meeting Notes",
+  "Final Deliverables"
+];
+
 interface UserDetailsDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -28,9 +36,6 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
   const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [documentCategory, setDocumentCategory] = useState('');
   const [documentName, setDocumentName] = useState('');
-  
-  // Get all document categories
-  const categories = Array.from(new Set(DOCUMENTS.map(doc => doc.category)));
   
   // Get documents for this user
   const userDocuments = DOCUMENTS.filter(doc => 
@@ -159,7 +164,7 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent>
-                          {categories.map(category => (
+                          {DOCUMENT_CATEGORIES.map(category => (
                             <SelectItem key={category} value={category}>
                               {category}
                             </SelectItem>

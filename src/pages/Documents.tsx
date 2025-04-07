@@ -7,6 +7,14 @@ import { DOCUMENTS, getDocumentsForUser } from '@/services/mockData';
 import { useToast } from '@/components/ui/use-toast';
 import { v4 as uuidv4 } from '@/lib/utils';
 
+// Standard document categories
+const DOCUMENT_CATEGORIES = [
+  "Session Homework",
+  "Client Materials",
+  "Meeting Notes",
+  "Final Deliverables"
+];
+
 const Documents = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -14,7 +22,7 @@ const Documents = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
 
   useEffect(() => {
-    document.title = 'Documents - Healthwise Advisory Hub';
+    document.title = 'Documents - Akros Advisory';
     // Simulate loading
     const timer = setTimeout(() => {
       setIsLoading(false);
@@ -40,11 +48,6 @@ const Documents = () => {
   }
 
   const userDocuments = getDocumentsForUser(user.id);
-  
-  // Extract all unique categories from documents
-  const allCategories = Array.from(
-    new Set(DOCUMENTS.map(doc => doc.category))
-  );
 
   const handleMarkAsReviewed = (documentId: string, reviewed: boolean) => {
     const document = DOCUMENTS.find(doc => doc.id === documentId);
@@ -109,7 +112,6 @@ const Documents = () => {
       />
       
       <DocumentUpload 
-        categories={allCategories}
         onUpload={handleUploadDocument}
       />
     </div>

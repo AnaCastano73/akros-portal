@@ -9,12 +9,19 @@ import { useToast } from '@/components/ui/use-toast';
 import { Upload } from 'lucide-react';
 
 interface DocumentUploadProps {
-  categories: string[];
   onUpload: (file: File, category: string) => void;
   trigger?: React.ReactNode;
 }
 
-export function DocumentUpload({ categories, onUpload, trigger }: DocumentUploadProps) {
+// Standard document categories
+const DOCUMENT_CATEGORIES = [
+  "Session Homework",
+  "Client Materials",
+  "Meeting Notes",
+  "Final Deliverables"
+];
+
+export function DocumentUpload({ onUpload, trigger }: DocumentUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [category, setCategory] = useState('');
   const [open, setOpen] = useState(false);
@@ -90,7 +97,7 @@ export function DocumentUpload({ categories, onUpload, trigger }: DocumentUpload
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map(cat => (
+                  {DOCUMENT_CATEGORIES.map(cat => (
                     <SelectItem key={cat} value={cat}>
                       {cat}
                     </SelectItem>
