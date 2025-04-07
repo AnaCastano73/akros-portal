@@ -3,7 +3,7 @@ import React from 'react';
 import { DashboardWidget as WidgetType } from '@/contexts/DashboardConfigContext';
 import { DashboardWidget } from '@/components/dashboard/DashboardWidget';
 import { Card, CardContent } from '@/components/ui/card';
-import { Book, FileText, Users, Graduation } from 'lucide-react';
+import { Book, FileText, Users, GraduationCap } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCoursesForUser, getDocumentsForUser } from '@/services/mockData';
 
@@ -66,8 +66,8 @@ export const StatsWidget: React.FC<StatsWidgetProps> = ({ widget, isEditing }) =
       });
       stats.push({
         title: 'Completion Rate',
-        value: '68%', // Mock value
-        icon: Graduation,
+        value: 68, // Changed from string '68%' to number 68
+        icon: GraduationCap, // Fixed: Changed from Graduation to GraduationCap
         color: 'bg-green-100 text-green-700',
       });
     }
