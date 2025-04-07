@@ -1,19 +1,21 @@
 
-import { Bell, Search, Menu } from "lucide-react";
+import { Bell, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/AuthContext";
+import { useDashboardConfig } from "@/contexts/DashboardConfigContext";
 
 export function Header() {
   const { user } = useAuth();
+  const { config } = useDashboardConfig();
 
   return (
     <header className="border-b bg-background sticky top-0 z-10">
       <div className="flex h-16 items-center px-3 md:px-4 gap-2 md:gap-4">
         <SidebarTrigger className="md:hidden" />
         <div className="font-heading text-xl font-bold tracking-tight hidden md:flex">
-          Akros Advisory
+          {config.brand.companyName}
         </div>
         <div className="flex-1 flex items-center justify-end md:ml-auto gap-2">
           <form className="relative max-w-sm hidden md:block">
