@@ -34,12 +34,12 @@ const Documents = () => {
   if (!user || isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-pulse text-center">
+        <div className="animate-pulse text-center w-full">
           <div className="h-8 w-48 bg-gray-200 rounded mb-4 mx-auto"></div>
           <div className="h-4 w-64 bg-gray-200 rounded mb-6 mx-auto"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto px-4">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-gray-200 h-48 rounded-md"></div>
+              <div key={i} className="bg-gray-200 h-36 rounded-md"></div>
             ))}
           </div>
         </div>
@@ -96,9 +96,9 @@ const Documents = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight font-heading">Documents</h1>
+    <div className="space-y-4 md:space-y-6">
+      <div className="text-left">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight font-heading">Documents</h1>
         <p className="text-muted-foreground">
           Manage and access your documents
         </p>
