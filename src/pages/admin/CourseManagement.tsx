@@ -9,12 +9,14 @@ import { Button } from '@/components/ui/button';
 import { Search, Edit, Plus, Trash } from 'lucide-react';
 import { COURSES } from '@/services/mockData';
 import { useNavigate } from 'react-router-dom';
+import { CreateCourseDialog } from '@/components/admin/CreateCourseDialog';
 
 const CourseManagement = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   useEffect(() => {
     document.title = 'Course Management - Healthwise Advisory Hub';
@@ -60,7 +62,10 @@ const CourseManagement = () => {
             Create and manage learning content
           </p>
         </div>
-        <Button className="bg-brand-500 hover:bg-brand-600">
+        <Button 
+          className="bg-brand-500 hover:bg-brand-600"
+          onClick={() => setIsCreateDialogOpen(true)}
+        >
           <Plus className="mr-2 h-4 w-4" />
           Create New Course
         </Button>
@@ -148,6 +153,11 @@ const CourseManagement = () => {
           </Table>
         </CardContent>
       </Card>
+
+      <CreateCourseDialog 
+        isOpen={isCreateDialogOpen} 
+        onOpenChange={setIsCreateDialogOpen} 
+      />
     </div>
   );
 };
