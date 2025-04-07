@@ -13,7 +13,7 @@ export function Header() {
       <div className="flex h-16 items-center px-4 gap-4">
         <SidebarTrigger />
         <div className="font-heading text-xl font-bold tracking-tight hidden md:flex">
-          Akros Advisory
+          Healthwise Advisory Hub
         </div>
         <div className="flex-1 flex items-center md:ml-auto">
           <form className="relative max-w-sm">

@@ -12,7 +12,6 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Courses from "./pages/Courses";
 import CourseView from "./pages/CourseView";
-import CourseEnrollment from "./pages/CourseEnrollment";
 import Documents from "./pages/Documents";
 import ExpertProfile from "./pages/expert/ExpertProfile";
 import ExpertContributions from "./pages/expert/ExpertContributions";
@@ -34,7 +33,6 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/enroll/:courseId" element={<CourseEnrollment />} />
             
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />

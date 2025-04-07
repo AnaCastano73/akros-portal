@@ -137,10 +137,10 @@ export function AppSidebar() {
       <SidebarHeader className="border-b">
         <div className="flex items-center gap-2 px-4 py-2">
           <div className="h-8 w-8 rounded-full bg-brand-500 flex items-center justify-center text-white font-bold">
-            A
+            H
           </div>
           <div className="font-heading font-bold tracking-tight">
-            Akros
+            Healthwise
           </div>
         </div>
       </SidebarHeader>

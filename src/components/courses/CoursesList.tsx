@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { EnrollableCourseCard } from './EnrollableCourseCard';
+import { CourseCard } from './CourseCard';
 import { Input } from '@/components/ui/input';
 import { Course, CourseProgress } from '@/types/course';
 import { Button } from '@/components/ui/button';
@@ -98,7 +98,7 @@ export function CoursesList({ courses, progress = [] }: CoursesListProps) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCourses.map(course => (
-            <EnrollableCourseCard 
+            <CourseCard 
               key={course.id} 
               course={course} 
               progress={getProgressPercentage(course.id)}

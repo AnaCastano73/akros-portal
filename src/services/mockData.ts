@@ -1,3 +1,4 @@
+
 import { Course, CourseProgress } from '@/types/course';
 import { Document } from '@/types/document';
 import { User, UserRole } from '@/types/auth';
@@ -19,7 +20,6 @@ export const COURSES: Course[] = [
     thumbnailUrl: '/placeholder.svg',
     tags: ['Foundations', 'Technology'],
     visibleTo: ['client', 'expert', 'employee', 'admin'],
-    price: 0, // Free course
     modules: [
       {
         id: 'm1',
@@ -77,7 +77,6 @@ export const COURSES: Course[] = [
     thumbnailUrl: '/placeholder.svg',
     tags: ['Strategy', 'Leadership'],
     visibleTo: ['client', 'expert', 'admin'],
-    price: 2995, // $29.95
     modules: [
       {
         id: 'm3',
@@ -104,7 +103,6 @@ export const COURSES: Course[] = [
     thumbnailUrl: '/placeholder.svg',
     tags: ['Analytics', 'Data'],
     visibleTo: ['expert', 'employee', 'admin'],
-    price: 4995, // $49.95
     modules: [
       {
         id: 'm4',
@@ -132,22 +130,19 @@ export const COURSE_PROGRESS: CourseProgress[] = [
     userId: '1',
     courseId: '1',
     completedLessons: ['l1'],
-    lastAccessed: new Date('2025-04-05'),
-    enrollmentDate: new Date('2025-03-15')
+    lastAccessed: new Date('2025-04-05')
   },
   {
     userId: '2',
     courseId: '1',
     completedLessons: ['l1', 'l2'],
-    lastAccessed: new Date('2025-04-06'),
-    enrollmentDate: new Date('2025-03-20')
+    lastAccessed: new Date('2025-04-06')
   },
   {
     userId: '3',
     courseId: '3',
     completedLessons: ['l5'],
-    lastAccessed: new Date('2025-04-07'),
-    enrollmentDate: new Date('2025-04-01')
+    lastAccessed: new Date('2025-04-07')
   }
 ];
 

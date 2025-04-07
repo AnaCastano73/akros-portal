@@ -73,7 +73,7 @@ const CourseView = () => {
     );
   }
 
-  document.title = `${course.title} - Akros Advisory`;
+  document.title = `${course.title} - Healthwise Advisory Hub`;
 
   // Get or create progress for this user
   let progress = COURSE_PROGRESS.find(p => p.userId === user.id && p.courseId === course.id);
@@ -83,8 +83,7 @@ const CourseView = () => {
       userId: user.id,
       courseId: course.id,
       completedLessons: [],
-      lastAccessed: new Date(),
-      enrollmentDate: new Date() // Add enrollmentDate for new progress
+      lastAccessed: new Date()
     };
     COURSE_PROGRESS.push(progress);
   } else {

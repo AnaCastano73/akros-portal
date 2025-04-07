@@ -33,9 +33,8 @@ export interface Course {
   thumbnailUrl?: string;
   modules: Module[];
   tags: string[];
-  price: number; // Price in cents (0 for free courses)
   visibleTo: ('client' | 'expert' | 'employee' | 'admin')[];
-  assignedUsers?: string[]; // For individual course assignments
+  assignedUsers?: string[];
 }
 
 export interface CourseProgress {
@@ -43,7 +42,6 @@ export interface CourseProgress {
   courseId: string;
   completedLessons: string[]; // IDs of completed lessons
   lastAccessed: Date;
-  enrollmentDate: Date; // When the user enrolled in the course
 }
 
 export interface Quiz {
@@ -62,13 +60,4 @@ export interface QuizQuestion {
 export interface QuizOption {
   id: string;
   text: string;
-}
-
-// New enrollment interface for the external enrollment flow
-export interface EnrollmentRequest {
-  courseId: string;
-  userId?: string; // Optional if user is not yet registered
-  userEmail: string;
-  userName: string; 
-  paymentIntentId?: string; // For paid courses with Stripe
 }
