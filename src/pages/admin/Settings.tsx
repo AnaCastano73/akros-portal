@@ -20,9 +20,9 @@ const Settings = () => {
   // Mock settings data
   const [settings, setSettings] = useState({
     general: {
-      companyName: 'Healthwise Advisory Hub',
-      supportEmail: 'support@healthwiseadvisory.com',
-      websiteUrl: 'https://healthwiseadvisory.com'
+      companyName: 'Akros Advisory',
+      supportEmail: 'support@akrosadvisory.com',
+      websiteUrl: 'https://akrosadvisory.com'
     },
     notifications: {
       emailNotifications: true,
@@ -38,7 +38,7 @@ const Settings = () => {
   });
 
   useEffect(() => {
-    document.title = 'Settings - Healthwise Advisory Hub';
+    document.title = 'Settings - Akros Advisory';
     
     // Simulate loading
     const timer = setTimeout(() => {
