@@ -233,7 +233,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Add all members to the room
       const allMembers = [...memberIds, user.id];
       const memberInserts = allMembers.map(memberId => ({
-        room_id: roomData.id,
+        room_id: roomData!.id,
         user_id: memberId
       }));
       
@@ -308,7 +308,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Handle new message for the current user
           if (payload.new) {
             // Add message to current chat if it belongs there
-            const newMessage = payload.new as ChatMessage;
+            const newMessage = payload.new as unknown as ChatMessage;
             
             // Check if message belongs to active chat
             if (activeChat) {

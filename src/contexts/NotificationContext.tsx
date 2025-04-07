@@ -3,7 +3,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { Notification, NotificationPreferences } from '@/types/notification';
+// Use type-only import to avoid conflict with global Notification
+import type { Notification, NotificationPreferences } from '@/types/notification';
 
 interface NotificationContextType {
   notifications: Notification[];
@@ -28,7 +29,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Check if the browser supports notifications
   useEffect(() => {
     if ('Notification' in window) {
-      setNotificationPermission(Notification.permission);
+      setNotificationPermission(window.Notification.permission);
     }
   }, []);
 

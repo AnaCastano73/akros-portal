@@ -57,7 +57,10 @@ export const ChatPanel = () => {
       {/* Chat header */}
       <div className="p-4 border-b flex items-center">
         <Avatar className="h-10 w-10 mr-3">
-          <AvatarImage src={isRoom ? undefined : (activeChat.avatar || '/placeholder.svg')} alt={chatName} />
+          <AvatarImage 
+            src={isRoom ? undefined : ('avatar' in activeChat ? activeChat.avatar : undefined)} 
+            alt={chatName} 
+          />
           <AvatarFallback>
             {chatName.substring(0, 2).toUpperCase()}
           </AvatarFallback>
@@ -65,7 +68,9 @@ export const ChatPanel = () => {
         <div className="flex-1">
           <h3 className="font-medium">{chatName}</h3>
           <p className="text-xs text-muted-foreground">
-            {isRoom ? `${activeChat.members?.length || 0} members` : (activeChat.online ? 'Online' : 'Offline')}
+            {isRoom 
+              ? `${('members' in activeChat && activeChat.members) ? activeChat.members.length : 0} members` 
+              : ('online' in activeChat && activeChat.online ? 'Online' : 'Offline')}
           </p>
         </div>
       </div>
