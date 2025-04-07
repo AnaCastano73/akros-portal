@@ -2,7 +2,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { Book, FileText, Home, Settings, Users, User, Edit, BookOpen, FileSignature, Building } from 'lucide-react';
+import { Book, FileText, Home, Settings, Users, User, Edit, BookOpen, FileSignature, Building, MessageCircle, Bell } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -28,6 +28,18 @@ export function AppSidebar() {
       title: 'Dashboard',
       icon: Home,
       href: '/dashboard',
+      roles: ['client', 'expert', 'employee', 'admin'],
+    },
+    {
+      title: 'Chat',
+      icon: MessageCircle,
+      href: '/chat',
+      roles: ['client', 'expert', 'employee', 'admin'],
+    },
+    {
+      title: 'Notifications',
+      icon: Bell,
+      href: '/notifications',
       roles: ['client', 'expert', 'employee', 'admin'],
     },
   ];

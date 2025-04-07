@@ -9,7 +9,161 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          read: boolean | null
+          recipient_id: string | null
+          room_id: string | null
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          read?: boolean | null
+          recipient_id?: string | null
+          room_id?: string | null
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          read?: boolean | null
+          recipient_id?: string | null
+          room_id?: string | null
+          sender_id?: string
+        }
+        Relationships: []
+      }
+      chat_room_members: {
+        Row: {
+          id: string
+          joined_at: string
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_room_members_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_rooms: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      notification_preferences: {
+        Row: {
+          browser_notifications: boolean | null
+          created_at: string
+          document_updates: boolean | null
+          email_notifications: boolean | null
+          id: string
+          mentions: boolean | null
+          new_messages: boolean | null
+          push_notifications: boolean | null
+          status_changes: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          browser_notifications?: boolean | null
+          created_at?: string
+          document_updates?: boolean | null
+          email_notifications?: boolean | null
+          id?: string
+          mentions?: boolean | null
+          new_messages?: boolean | null
+          push_notifications?: boolean | null
+          status_changes?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          browser_notifications?: boolean | null
+          created_at?: string
+          document_updates?: boolean | null
+          email_notifications?: boolean | null
+          id?: string
+          mentions?: boolean | null
+          new_messages?: boolean | null
+          push_notifications?: boolean | null
+          status_changes?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          link: string | null
+          read: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          link?: string | null
+          read?: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          link?: string | null
+          read?: boolean | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

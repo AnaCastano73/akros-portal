@@ -1,14 +1,17 @@
 
-import { Bell, Search } from "lucide-react";
+import { Bell, Search, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardConfig } from "@/contexts/DashboardConfigContext";
+import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
+import { useNavigate } from "react-router-dom";
 
 export function Header() {
   const { user } = useAuth();
   const { config } = useDashboardConfig();
+  const navigate = useNavigate();
 
   return (
     <header className="border-b bg-background sticky top-0 z-10">
@@ -26,9 +29,18 @@ export function Header() {
               className="pl-8 w-[120px] sm:w-[200px] md:w-[300px] bg-background"
             />
           </form>
-          <Button variant="ghost" size="icon" className="text-muted-foreground">
-            <Bell className="h-5 w-5" />
+          
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-muted-foreground"
+            onClick={() => navigate('/chat')}
+          >
+            <MessageCircle className="h-5 w-5" />
           </Button>
+          
+          <NotificationDropdown />
+          
           <div className="flex items-center gap-2">
             <div className="font-medium hidden md:block">
               <span className="text-brand-500">{user?.name}</span>

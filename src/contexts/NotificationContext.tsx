@@ -1,0 +1,322 @@
+
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
+import { Notification, NotificationPreferences } from '@/types/notification';
+
+interface NotificationContextType {
+  notifications: Notification[];
+  unreadCount: number;
+  markAsRead: (notificationId: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  preferences: NotificationPreferences | null;
+  updatePreferences: (preferences: Partial<NotificationPreferences>) => Promise<void>;
+  requestNotificationPermission: () => Promise<boolean>;
+  showBrowserNotification: (title: string, options?: NotificationOptions) => void;
+}
+
+const NotificationContext = createContext<NotificationContextType | null>(null);
+
+export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | null>(null);
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  // Check if the browser supports notifications
+  useEffect(() => {
+    if ('Notification' in window) {
+      setNotificationPermission(Notification.permission);
+    }
+  }, []);
+
+  // Load notifications and preferences when user logs in
+  useEffect(() => {
+    if (user) {
+      loadNotifications();
+      loadPreferences();
+      subscribeToNotifications();
+    } else {
+      setNotifications([]);
+      setPreferences(null);
+    }
+    
+    return () => {
+      unsubscribeFromNotifications();
+    };
+  }, [user]);
+
+  const loadNotifications = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+        
+      if (error) throw error;
+      
+      setNotifications(data || []);
+      
+    } catch (error) {
+      console.error('Error loading notifications:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load notifications',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const loadPreferences = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('notification_preferences')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+        
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No preference record found, create default preferences
+          await createDefaultPreferences();
+        } else {
+          throw error;
+        }
+      } else {
+        setPreferences(data);
+      }
+      
+    } catch (error) {
+      console.error('Error loading notification preferences:', error);
+    }
+  };
+
+  const createDefaultPreferences = async () => {
+    if (!user) return;
+    
+    const defaultPrefs: Partial<NotificationPreferences> = {
+      user_id: user.id,
+      new_messages: true,
+      mentions: true,
+      document_updates: true,
+      status_changes: true,
+      browser_notifications: true,
+      push_notifications: true,
+      email_notifications: false
+    };
+    
+    try {
+      const { data, error } = await supabase
+        .from('notification_preferences')
+        .insert(defaultPrefs)
+        .select()
+        .single();
+        
+      if (error) throw error;
+      
+      setPreferences(data);
+      
+    } catch (error) {
+      console.error('Error creating default preferences:', error);
+    }
+  };
+
+  const markAsRead = async (notificationId: string) => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', notificationId)
+        .eq('user_id', user.id);
+        
+      if (error) throw error;
+      
+      setNotifications(prev => 
+        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+      );
+      
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    if (!user || notifications.length === 0) return;
+    
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+        
+      if (error) throw error;
+      
+      setNotifications(prev => 
+        prev.map(n => ({ ...n, read: true }))
+      );
+      
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
+  };
+
+  const updatePreferences = async (newPrefs: Partial<NotificationPreferences>) => {
+    if (!user || !preferences) return;
+    
+    try {
+      const updatedPrefs = {
+        ...newPrefs,
+        updated_at: new Date().toISOString()
+      };
+      
+      const { data, error } = await supabase
+        .from('notification_preferences')
+        .update(updatedPrefs)
+        .eq('id', preferences.id)
+        .select()
+        .single();
+        
+      if (error) throw error;
+      
+      setPreferences(data);
+      
+      toast({
+        title: 'Success',
+        description: 'Notification preferences updated'
+      });
+      
+    } catch (error) {
+      console.error('Error updating notification preferences:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update notification preferences',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const requestNotificationPermission = async (): Promise<boolean> => {
+    if (!('Notification' in window)) {
+      toast({
+        title: 'Error',
+        description: 'This browser does not support desktop notifications',
+        variant: 'destructive',
+      });
+      return false;
+    }
+    
+    if (Notification.permission === 'granted') {
+      setNotificationPermission('granted');
+      return true;
+    }
+    
+    if (Notification.permission !== 'denied') {
+      const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
+      return permission === 'granted';
+    }
+    
+    return false;
+  };
+
+  const showBrowserNotification = (title: string, options?: NotificationOptions) => {
+    if (!('Notification' in window) || notificationPermission !== 'granted') {
+      return;
+    }
+    
+    try {
+      const notification = new Notification(title, {
+        icon: '/favicon.ico',
+        ...options
+      });
+      
+      notification.onclick = () => {
+        window.focus();
+        notification.close();
+      };
+      
+    } catch (error) {
+      console.error('Error showing browser notification:', error);
+    }
+  };
+
+  const subscribeToNotifications = () => {
+    if (!user) return;
+    
+    const channel = supabase
+      .channel('notifications')
+      .on('postgres_changes', 
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`
+        }, 
+        payload => {
+          if (payload.new) {
+            const newNotification = payload.new as Notification;
+            
+            // Add new notification to state
+            setNotifications(prev => [newNotification, ...prev]);
+            
+            // Show browser notification if enabled
+            if (preferences?.browser_notifications && notificationPermission === 'granted') {
+              showBrowserNotification(newNotification.title, {
+                body: newNotification.content,
+                tag: newNotification.id
+              });
+            }
+            
+            // Show toast notification
+            toast({
+              title: newNotification.title,
+              description: newNotification.content,
+            });
+          }
+        }
+      )
+      .subscribe();
+      
+    return channel;
+  };
+  
+  const unsubscribeFromNotifications = () => {
+    supabase.removeChannel('notifications');
+  };
+
+  return (
+    <NotificationContext.Provider
+      value={{
+        notifications,
+        unreadCount,
+        markAsRead,
+        markAllAsRead,
+        preferences,
+        updatePreferences,
+        requestNotificationPermission,
+        showBrowserNotification
+      }}
+    >
+      {children}
+    </NotificationContext.Provider>
+  );
+};
+
+export const useNotifications = () => {
+  const context = useContext(NotificationContext);
+  if (!context) {
+    throw new Error('useNotifications must be used within a NotificationProvider');
+  }
+  return context;
+};
