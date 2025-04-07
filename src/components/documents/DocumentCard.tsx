@@ -1,6 +1,5 @@
-
 import { useState } from 'react';
-import { Document as DocumentType, DocumentAnnotation, DocumentVersion, DocumentActivity, FILE_PREVIEW_TYPES } from '@/types/document';
+import { Document as DocumentType, DocumentAnnotation, DocumentVersion, DocumentActivity as DocumentActivityType, FILE_PREVIEW_TYPES } from '@/types/document';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -72,7 +71,7 @@ export function DocumentCard({
   const hasPreviewSupport = FILE_PREVIEW_TYPES.includes(document.type);
   
   // Mock document activity data
-  const mockActivities: DocumentActivity[] = [
+  const mockActivities: DocumentActivityType[] = [
     {
       id: '1',
       documentId: document.id,
@@ -439,7 +438,6 @@ export function DocumentCard({
         </div>
       </CardFooter>
       
-      {/* Version history dialog */}
       <DocumentVersions 
         document={document}
         isOpen={activeDismissible === 'versions'}
@@ -447,7 +445,6 @@ export function DocumentCard({
         onRevertToVersion={handleRevertToVersion}
       />
       
-      {/* Annotations dialog */}
       <DocumentAnnotations 
         document={document}
         isOpen={activeDismissible === 'annotations'}
@@ -455,7 +452,6 @@ export function DocumentCard({
         onAddAnnotation={handleAddAnnotation}
       />
       
-      {/* Activity log dialog */}
       <DocumentActivity 
         documentId={document.id}
         activities={mockActivities}

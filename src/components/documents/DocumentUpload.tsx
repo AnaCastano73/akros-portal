@@ -1,4 +1,3 @@
-
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -12,6 +11,7 @@ import { Document as DocumentType } from '@/types/document';
 import { Textarea } from '@/components/ui/textarea';
 import { FileUpload } from '@/components/ui/file-upload';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 
 interface DocumentUploadProps {
   onUpload: (file: File, category: string, metadata?: Record<string, string>, tags?: string[], isNewVersion?: boolean, existingDocumentId?: string, versionNotes?: string) => void;
@@ -22,7 +22,7 @@ interface DocumentUploadProps {
 // Standard document categories
 const DOCUMENT_CATEGORIES = [
   "Session Homework",
-  "Client Materials",
+  "Client Materials", 
   "Meeting Notes",
   "Final Deliverables"
 ];
