@@ -1,8 +1,7 @@
-
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { Book, FileText, Home, Settings, Users, User, Edit, BookOpen, FileSignature, Building, MessageCircle, Bell } from 'lucide-react';
+import { Book, FileText, Home, Settings, Users, User, Edit, BookOpen, FileSignature, Building, MessageCircle, Bell, BarChart2 } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -97,30 +96,31 @@ export function AppSidebar() {
   ];
 
   // Admin-specific navigation items
-  const adminItems = [
+  const adminLinks = [
     {
       title: 'User Management',
-      icon: Users,
       href: '/admin/users',
-      roles: ['admin'],
+      icon: Users,
     },
     {
       title: 'Course Management',
-      icon: BookOpen,
       href: '/admin/courses',
-      roles: ['admin'],
+      icon: BookOpen,
     },
     {
       title: 'Document Management',
-      icon: FileText,
       href: '/admin/documents',
-      roles: ['admin'],
+      icon: FileText,
+    },
+    {
+      title: 'Analytics',
+      href: '/admin/analytics',
+      icon: BarChart2,
     },
     {
       title: 'Settings',
-      icon: Settings,
       href: '/admin/settings',
-      roles: ['admin'],
+      icon: Settings,
     },
   ];
 
@@ -136,7 +136,7 @@ export function AppSidebar() {
       case 'employee':
         return [...commonItems, ...employeeItems];
       case 'admin':
-        return [...commonItems, ...adminItems];
+        return [...commonItems, ...adminLinks];
       default:
         return commonItems;
     }

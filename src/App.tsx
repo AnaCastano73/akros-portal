@@ -22,6 +22,7 @@ import ExpertContributions from "./pages/expert/ExpertContributions";
 import UserManagement from "./pages/admin/UserManagement";
 import CourseManagement from "./pages/admin/CourseManagement";
 import DocumentManagement from "./pages/admin/DocumentManagement";
+import Analytics from "./pages/admin/Analytics";
 import Settings from "./pages/admin/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -56,6 +57,7 @@ const App = () => (
                   <Route path="/admin/users" element={<UserManagement />} />
                   <Route path="/admin/courses" element={<CourseManagement />} />
                   <Route path="/admin/documents" element={<DocumentManagement />} />
+                  <Route path="/admin/analytics" element={<Analytics />} />
                   <Route path="/admin/settings" element={<Settings />} />
                 </Route>
                 
