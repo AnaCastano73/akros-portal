@@ -1,12 +1,15 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LoginForm } from '@/components/auth/LoginForm';
+import { SignupForm } from '@/components/auth/SignupForm';
 import { useAuth } from '@/contexts/AuthContext';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Login = () => {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<string>("login");
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -30,7 +33,19 @@ const Login = () => {
             Sign in to access your personalized dashboard
           </p>
         </div>
-        <LoginForm />
+        
+        <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="login">Login</TabsTrigger>
+            <TabsTrigger value="signup">Sign Up</TabsTrigger>
+          </TabsList>
+          <TabsContent value="login">
+            <LoginForm onSwitchTab={() => setActiveTab("signup")} />
+          </TabsContent>
+          <TabsContent value="signup">
+            <SignupForm onSwitchTab={() => setActiveTab("login")} />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

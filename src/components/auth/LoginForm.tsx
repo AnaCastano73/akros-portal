@@ -6,11 +6,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Eye, EyeOff, Mail, Key, LogIn } from 'lucide-react';
 
-export const LoginForm = () => {
+interface LoginFormProps {
+  onSwitchTab?: () => void;
+}
+
+export const LoginForm = ({ onSwitchTab }: LoginFormProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -32,10 +38,14 @@ export const LoginForm = () => {
     }
   };
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="w-full max-w-md mx-auto border-0 shadow-none">
       <CardHeader>
-        <CardTitle className="text-2xl text-center">Sign in to your account</CardTitle>
+        <CardTitle className="text-2xl text-center">Welcome back</CardTitle>
         <CardDescription className="text-center">
           Enter your email and password to access your account
         </CardDescription>
@@ -44,14 +54,18 @@ export const LoginForm = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="email@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+            <div className="relative">
+              <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="email"
+                type="email"
+                placeholder="email@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="pl-10"
+                required
+              />
+            </div>
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -60,13 +74,24 @@ export const LoginForm = () => {
                 Forgot password?
               </a>
             </div>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <div className="relative">
+              <Key className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="pl-10 pr-10"
+                required
+              />
+              <button 
+                type="button" 
+                className="absolute right-3 top-3 text-muted-foreground"
+                onClick={togglePasswordVisibility}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
           
           <Button 
@@ -74,7 +99,12 @@ export const LoginForm = () => {
             className="w-full bg-brand-500 hover:bg-brand-600" 
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Signing in...' : 'Sign in'}
+            {isSubmitting ? 'Signing in...' : (
+              <span className="flex items-center justify-center">
+                <LogIn className="h-4 w-4 mr-2" />
+                Sign in
+              </span>
+            )}
           </Button>
         </form>
         
@@ -127,9 +157,13 @@ export const LoginForm = () => {
       <CardFooter className="flex justify-center">
         <p className="text-sm text-muted-foreground">
           Don't have an account?{' '}
-          <a href="#" className="text-brand-500 hover:text-brand-600">
-            Contact administrator
-          </a>
+          <button 
+            type="button"
+            onClick={onSwitchTab} 
+            className="text-brand-500 hover:text-brand-600"
+          >
+            Sign up now
+          </button>
         </p>
       </CardFooter>
     </Card>
