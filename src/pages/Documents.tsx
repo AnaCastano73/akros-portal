@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { DocumentsList } from '@/components/documents/DocumentsList';
 import { DocumentUpload } from '@/components/documents/DocumentUpload';
@@ -9,7 +8,6 @@ import { Document, DocumentAnnotation, DocumentActivity } from '@/types/document
 import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from '@/lib/utils';
 
-// Standard document categories
 const DOCUMENT_CATEGORIES = [
   "Session Homework",
   "Client Materials",
@@ -64,7 +62,7 @@ const Documents = () => {
 
   const handleMarkAsReviewed = async (documentId: string, reviewed: boolean) => {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseTyped
         .from('documents')
         .update({ reviewed })
         .eq('id', documentId);
@@ -134,7 +132,7 @@ const Documents = () => {
       const updatedTags = [...(document.tags || []), tag];
       
       try {
-        const { error } = await supabase
+        const { error } = await supabaseTyped
           .from('documents')
           .update({ tags: updatedTags })
           .eq('id', documentId);
@@ -160,7 +158,7 @@ const Documents = () => {
       const updatedTags = document.tags.filter(t => t !== tag);
       
       try {
-        const { error } = await supabase
+        const { error } = await supabaseTyped
           .from('documents')
           .update({ tags: updatedTags })
           .eq('id', documentId);
@@ -193,7 +191,7 @@ const Documents = () => {
   const handleUploadDocument = async (
     file: File, 
     category: string, 
-    metadata?: Record<string, string>, 
+    metadata?: Record<string, any>, 
     tags?: string[], 
     isNewVersion?: boolean, 
     existingDocumentId?: string, 
@@ -217,7 +215,7 @@ const Documents = () => {
           const existingDocument = documents.find(doc => doc.id === existingDocumentId);
           if (existingDocument) {
             // Update the document with new version info
-            const { error } = await supabase
+            const { error } = await supabaseTyped
               .from('documents')
               .update({
                 url: fileUrl,
@@ -262,7 +260,7 @@ const Documents = () => {
         }
         
         // Handle new document
-        const { data, error } = await supabase
+        const { data, error } = await supabaseTyped
           .from('documents')
           .insert({
             name: file.name,

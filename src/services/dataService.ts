@@ -88,8 +88,7 @@ export const getCoursesForUser = async (userId: string): Promise<Course[]> => {
         thumbnailUrl: course.image_url || '/placeholder.svg',
         modules: [],
         tags: course.tags || [],
-        enrolledUsers: [],
-        createdAt: new Date(course.created_at)
+        enrolledUsers: []
       };
     }
       
@@ -116,6 +115,7 @@ export const getCoursesForUser = async (userId: string): Promise<Course[]> => {
         id: lesson.id,
         title: lesson.title,
         content: lesson.content,
+        description: '', // Add a default empty description
         order: lesson.order_index
       }));
       
@@ -178,7 +178,7 @@ export const getCourseProgressForUser = async (userId: string): Promise<CoursePr
 // User functions
 export const getAllUsers = async (): Promise<User[]> => {
   // This requires admin privileges, which is handled by Supabase RLS
-  const { data: { users }, error } = await supabase.auth.admin.listUsers();
+  const { data, error } = await supabase.auth.admin.listUsers();
   
   if (error) {
     console.error('Error fetching users:', error);
@@ -186,7 +186,7 @@ export const getAllUsers = async (): Promise<User[]> => {
   }
   
   // Map to our User type
-  return users.map(u => ({
+  return (data?.users || []).map(u => ({
     id: u.id,
     email: u.email || '',
     name: `${u.user_metadata?.first_name || ''} ${u.user_metadata?.last_name || ''}`.trim() || u.email?.split('@')[0] || 'Unknown',

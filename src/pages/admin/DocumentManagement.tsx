@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { DocumentUpload } from '@/components/documents/DocumentUpload';
 import { useToast } from '@/components/ui/use-toast';
 import { formatFileSize } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client'; // Fixed import
 import { supabaseTyped } from '@/integrations/supabase/types-extension';
 import { Document } from '@/types/document';
 
@@ -85,11 +86,11 @@ const DocumentManagement = () => {
   
   const fetchUsers = async () => {
     try {
-      const { data: { users: userData }, error } = await supabase.auth.admin.listUsers();
+      const { data, error } = await supabase.auth.admin.listUsers();
       
       if (error) throw error;
       
-      setUsers(userData.map(u => ({
+      setUsers((data?.users || []).map(u => ({
         id: u.id,
         name: `${u.user_metadata?.first_name || ''} ${u.user_metadata?.last_name || ''}`.trim() || 
               u.email?.split('@')[0] || 'Unknown User'
@@ -149,13 +150,13 @@ const DocumentManagement = () => {
         const fileUrl = event.target?.result as string;
         
         // Create document record visible to all users
-        const { data: { users: allUsers }, error: usersError } = await supabase.auth.admin.listUsers();
+        const { data, error: usersError } = await supabase.auth.admin.listUsers();
         
         if (usersError) throw usersError;
         
-        const allUserIds = allUsers.map(u => u.id);
+        const allUserIds = (data?.users || []).map(u => u.id);
         
-        const { data, error } = await supabaseTyped
+        const { data: docData, error } = await supabaseTyped
           .from('documents')
           .insert({
             name: file.name,
@@ -173,15 +174,15 @@ const DocumentManagement = () => {
         
         // Add to local state
         const newDocument: Document = {
-          id: data.id,
-          name: data.name,
-          url: data.url,
-          type: data.type,
-          size: data.size,
-          uploadedBy: data.uploaded_by,
-          uploadedAt: new Date(data.uploaded_at),
-          category: data.category,
-          visibleTo: data.visible_to,
+          id: docData.id,
+          name: docData.name,
+          url: docData.url,
+          type: docData.type,
+          size: docData.size,
+          uploadedBy: docData.uploaded_by,
+          uploadedAt: new Date(docData.uploaded_at),
+          category: docData.category,
+          visibleTo: docData.visible_to,
           reviewed: false,
           comments: [],
           annotations: [],

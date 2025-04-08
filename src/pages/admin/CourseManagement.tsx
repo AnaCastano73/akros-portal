@@ -82,6 +82,7 @@ const CourseManagement = () => {
               id: lesson.id,
               title: lesson.title,
               content: lesson.content,
+              description: '', // Add empty description
               order: lesson.order_index
             }))
           };

@@ -2,7 +2,7 @@
 export interface Lesson {
   id: string;
   title: string;
-  description: string;
+  description?: string; // Make description optional
   videoUrl?: string;
   articleUrl?: string;
   content?: string;
@@ -33,8 +33,8 @@ export interface Course {
   thumbnailUrl?: string;
   modules: Module[];
   tags: string[];
-  // Remove visibleTo array and replace with enrolledUsers
   enrolledUsers: string[]; // Array of user IDs that are enrolled in this course
+  createdAt?: Date; // Make createdAt optional
 }
 
 export interface CourseProgress {

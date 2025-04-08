@@ -14,7 +14,7 @@ export interface Document {
   version?: number;
   versionHistory?: DocumentVersion[];
   tags?: string[];
-  metadata?: Record<string, string>;
+  metadata?: Record<string, any>; // Changed from Record<string, string> to Record<string, any>
   annotations?: DocumentAnnotation[];
   lastViewedAt?: Date;
 }
