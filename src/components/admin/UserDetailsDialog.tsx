@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { 
   Dialog, DialogContent, DialogDescription, 
@@ -7,12 +8,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { FileUpload } from '@/components/ui/file-upload';
 import { Document } from '@/types/document';
-import { User } from '@/types/auth';
+import { User, UserRole } from '@/types/auth';
 import { DocumentCard } from '@/components/documents/DocumentCard';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
-import { FilePlus, Users, User } from 'lucide-react';
+import { FilePlus, Users, UserIcon } from 'lucide-react';
 import { v4 as uuidv4 } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { supabaseTyped } from '@/integrations/supabase/types-extension';
@@ -39,6 +40,7 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
   const [documentName, setDocumentName] = useState('');
   const [userDocuments, setUserDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(user);
   
   const fetchUserDocuments = async () => {
     if (!user) return;
@@ -190,8 +192,8 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
   };
   
   const handleRoleChange = (newRole: UserRole) => {
-    if (user) {
-      setUser(prevUser => prevUser ? { ...prevUser, role: newRole } : null);
+    if (currentUser) {
+      setCurrentUser(prevUser => prevUser ? { ...prevUser, role: newRole } : null);
     }
   };
   
@@ -219,7 +221,7 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="profile" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
+              <UserIcon className="h-4 w-4" />
               Profile
             </TabsTrigger>
             <TabsTrigger value="documents" className="flex items-center gap-2">
