@@ -107,52 +107,6 @@ export const LoginForm = ({ onSwitchTab }: LoginFormProps) => {
             )}
           </Button>
         </form>
-        
-        <div className="mt-4 text-center text-sm text-muted-foreground">
-          <p>Demo accounts:</p>
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => {
-                setEmail('client@example.com');
-                setPassword('password');
-              }}
-            >
-              Client
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => {
-                setEmail('expert@example.com');
-                setPassword('password');
-              }}
-            >
-              Expert
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => {
-                setEmail('employee@example.com');
-                setPassword('password');
-              }}
-            >
-              Employee
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => {
-                setEmail('admin@example.com');
-                setPassword('password');
-              }}
-            >
-              Admin
-            </Button>
-          </div>
-        </div>
       </CardContent>
       <CardFooter className="flex justify-center">
         <p className="text-sm text-muted-foreground">

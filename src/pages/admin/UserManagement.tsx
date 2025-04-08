@@ -7,10 +7,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Search, Edit, UserPlus, BookOpen, FileText } from 'lucide-react';
-import { USERS, COURSES, DOCUMENTS } from '@/services/mockData';
 import { useNavigate } from 'react-router-dom';
 import { UserDetailsDialog } from '@/components/admin/UserDetailsDialog';
 import { User } from '@/types/auth';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 const UserManagement = () => {
   const { user } = useAuth();
@@ -19,16 +20,61 @@ const UserManagement = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
-    document.title = 'User Management - Healthwise Advisory Hub';
-    // Simulate loading
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
+    document.title = 'User Management - Akros Advisory Hub';
     
-    return () => clearTimeout(timer);
-  }, []);
+    // Fetch users if admin
+    if (user?.role === 'admin') {
+      fetchUsers();
+    }
+  }, [user]);
+
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    try {
+      // Fetch all users - in a real app, you would use proper pagination
+      const { data, error } = await supabase.auth.admin.listUsers();
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Map to our User type
+      const mappedUsers: User[] = data.users.map(u => ({
+        id: u.id,
+        email: u.email || '',
+        name: `${u.user_metadata.first_name || ''} ${u.user_metadata.last_name || ''}`.trim() || u.email?.split('@')[0] || 'Unknown',
+        role: determineUserRole(u.email || ''),
+        avatar: u.user_metadata.avatar_url || '/placeholder.svg'
+      }));
+      
+      setUsers(mappedUsers);
+    } catch (error: any) {
+      console.error('Error fetching users:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to load users',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Determine user role based on email
+  const determineUserRole = (email: string) => {
+    if (email.endsWith('admin.akrosadvisory.com')) {
+      return 'admin';
+    } else if (email.endsWith('expert.akrosadvisory.com')) {
+      return 'expert';
+    } else if (email.endsWith('employee.akrosadvisory.com')) {
+      return 'employee';
+    } else {
+      return 'client';
+    }
+  };
 
   // Check if user is admin
   if (user?.role !== 'admin') {
@@ -49,7 +95,7 @@ const UserManagement = () => {
   }
 
   // Filter users based on search term
-  const filteredUsers = USERS.filter(user => 
+  const filteredUsers = users.filter(user => 
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.role.toLowerCase().includes(searchTerm.toLowerCase())
@@ -58,13 +104,6 @@ const UserManagement = () => {
   const handleViewUserDetails = (selectedUser: User) => {
     setSelectedUser(selectedUser);
     setIsDetailsOpen(true);
-  };
-
-  // Count documents for each user
-  const getUserDocumentCount = (userId: string) => {
-    return DOCUMENTS.filter(doc => 
-      doc.visibleTo.includes(userId) || doc.uploadedBy === userId
-    ).length;
   };
 
   return (
@@ -102,85 +141,51 @@ const UserManagement = () => {
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Enrolled Courses</TableHead>
-                <TableHead>Documents</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredUsers.map(currentUser => {
-                // Count courses enrolled to this user
-                const enrolledCourseCount = COURSES.filter(course => 
-                  course.enrolledUsers.includes(currentUser.id)
-                ).length;
-                
-                // Count documents for this user
-                const userDocumentCount = getUserDocumentCount(currentUser.id);
-                
-                return (
-                  <TableRow key={currentUser.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="h-8 w-8 rounded-full bg-gray-200">
-                          <img 
-                            src={currentUser.avatar || '/placeholder.svg'} 
-                            alt={currentUser.name} 
-                            className="h-full w-full rounded-full object-cover" 
-                          />
-                        </div>
-                        <span className="font-medium">{currentUser.name}</span>
+              {filteredUsers.map(currentUser => (
+                <TableRow key={currentUser.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded-full bg-gray-200">
+                        <img 
+                          src={currentUser.avatar || '/placeholder.svg'} 
+                          alt={currentUser.name} 
+                          className="h-full w-full rounded-full object-cover" 
+                        />
                       </div>
-                    </TableCell>
-                    <TableCell>{currentUser.email}</TableCell>
-                    <TableCell>
-                      <Badge className="capitalize">{currentUser.role}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Badge 
-                          variant="secondary"
-                          className="flex items-center gap-1"
-                        >
-                          <BookOpen className="h-3 w-3" />
-                          {enrolledCourseCount}
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Badge 
-                          variant="secondary"
-                          className="flex items-center gap-1"
-                        >
-                          <FileText className="h-3 w-3" />
-                          {userDocumentCount}
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          title="Edit User"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewUserDetails(currentUser)}
-                        >
-                          View Details
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                      <span className="font-medium">{currentUser.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>{currentUser.email}</TableCell>
+                  <TableCell>
+                    <Badge className="capitalize">{currentUser.role}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        title="Edit User"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewUserDetails(currentUser)}
+                      >
+                        View Details
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
               {filteredUsers.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-6">
+                  <TableCell colSpan={4} className="text-center py-6">
                     No users found. Try adjusting your search.
                   </TableCell>
                 </TableRow>

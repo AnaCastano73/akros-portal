@@ -18,4 +18,6 @@ export interface ChatContact {
   online?: boolean;
   last_active?: string;
   unread_count?: number;
+  role?: string; // Added to identify role of contact
+  email?: string; // Added for identification
 }

@@ -2,55 +2,90 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AuthContextType, User, UserRole } from '@/types/auth';
 import { toast } from "@/hooks/use-toast";
-
-// Mock data for development
-const MOCK_USERS = [
-  { id: '1', name: 'Client User', email: 'client@example.com', password: 'password', role: 'client' as UserRole, avatar: '/placeholder.svg' },
-  { id: '2', name: 'Expert User', email: 'expert@example.com', password: 'password', role: 'expert' as UserRole, avatar: '/placeholder.svg' },
-  { id: '3', name: 'Employee User', email: 'employee@example.com', password: 'password', role: 'employee' as UserRole, avatar: '/placeholder.svg' },
-  { id: '4', name: 'Admin User', email: 'admin@example.com', password: 'password', role: 'admin' as UserRole, avatar: '/placeholder.svg' },
-];
+import { supabase } from '@/integrations/supabase/client';
+import { Session } from '@supabase/supabase-js';
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for saved auth state in localStorage
-    const savedUser = localStorage.getItem('healthwise-user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setIsLoading(false);
+    // Set up auth state listener first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, currentSession) => {
+        setSession(currentSession);
+        if (currentSession?.user) {
+          const { id, email } = currentSession.user;
+          // Create a user object from the session
+          const userData: User = {
+            id,
+            email: email || "",
+            name: email?.split('@')[0] || "User",
+            role: determineUserRole(currentSession.user.email || ""),
+          };
+          setUser(userData);
+        } else {
+          setUser(null);
+        }
+      }
+    );
+
+    // Then check for existing session
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      setSession(currentSession);
+      if (currentSession?.user) {
+        const { id, email } = currentSession.user;
+        // Create a user object from the session
+        const userData: User = {
+          id,
+          email: email || "",
+          name: email?.split('@')[0] || "User",
+          role: determineUserRole(currentSession.user.email || ""),
+        };
+        setUser(userData);
+      }
+      setIsLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
+
+  // Helper function to determine user role based on email domain
+  // In a production app, you would fetch this from a database
+  const determineUserRole = (email: string): UserRole => {
+    // For demonstration - in production this would come from your database
+    if (email.endsWith('admin.akrosadvisory.com')) {
+      return 'admin';
+    } else if (email.endsWith('expert.akrosadvisory.com')) {
+      return 'expert';
+    } else if (email.endsWith('employee.akrosadvisory.com')) {
+      return 'employee';
+    } else {
+      return 'client';
+    }
+  };
 
   const login = async (email: string, password: string): Promise<void> => {
     setIsLoading(true);
     
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
       
-      // Find the user by email and password (in a real app, this would be an API call)
-      const foundUser = MOCK_USERS.find(
-        user => user.email === email && user.password === password
-      );
-      
-      if (!foundUser) {
-        throw new Error('Invalid email or password');
+      if (error) {
+        throw new Error(error.message);
       }
-      
-      // Create a user object without the password
-      const { password: _, ...userWithoutPassword } = foundUser;
-      
-      setUser(userWithoutPassword);
-      localStorage.setItem('healthwise-user', JSON.stringify(userWithoutPassword));
       
       toast({
         title: 'Login successful',
-        description: `Welcome back, ${foundUser.name}!`,
+        description: 'Welcome back!',
       });
     } catch (error) {
       toast({
@@ -64,13 +99,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('healthwise-user');
-    toast({
-      title: 'Logged out',
-      description: 'You have been logged out successfully.',
-    });
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      toast({
+        title: 'Logged out',
+        description: 'You have been logged out successfully.',
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        title: 'Logout failed',
+        description: 'There was a problem signing out.',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Mail, Key, User, UserPlus, Building } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SignupFormProps {
   onSwitchTab?: () => void;
@@ -49,19 +49,31 @@ export const SignupForm = ({ onSwitchTab }: SignupFormProps) => {
     
     setIsSubmitting(true);
     try {
-      // For demo purposes, use the mock login since we don't have real signup
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            company: company || null,
+          }
+        }
+      });
+
+      if (signUpError) throw signUpError;
+      
       toast({
         title: "Registration successful",
-        description: "Your account has been created. You can now log in.",
+        description: "Your account has been created. Please check your email for verification.",
       });
-      // Auto-login after signup (in a real app, might require email verification)
-      await login(email, password);
-      navigate('/dashboard');
-    } catch (error) {
+      
+      navigate('/login');
+    } catch (error: any) {
       console.error('Signup failed:', error);
       toast({
         title: "Registration failed",
-        description: "This is a demo app. Please use one of the provided demo accounts.",
+        description: error.message || "An error occurred during registration.",
         variant: "destructive",
       });
     } finally {
