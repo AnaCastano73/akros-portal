@@ -1,7 +1,8 @@
+
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { Book, FileText, Home, Settings, Users, User, Edit, BookOpen, FileSignature, Building, MessageCircle, Bell, BarChart2 } from 'lucide-react';
+import { Book, FileText, Home, Settings, Users, User, Edit, BookOpen, FileSignature, Building, MessageCircle, Bell, BarChart2, LogOut } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -189,7 +190,7 @@ export function AppSidebar() {
             </div>
           </div>
           <Button variant="ghost" size="icon" onClick={handleLogout}>
-            <Settings className="h-4 w-4" />
+            <LogOut className="h-4 w-4" />
           </Button>
         </div>
       </SidebarFooter>
