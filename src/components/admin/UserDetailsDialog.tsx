@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import { FilePlus, Users } from 'lucide-react';
 import { v4 as uuidv4 } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseTyped } from '@/integrations/supabase/types-extension';
 import { getDocumentsForUser } from '@/services/dataService';
 
 // Standard document categories
@@ -80,16 +80,14 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
       // 1. Create a unique filename
       const fileName = `${Date.now()}_${documentFile.name}`;
       
-      // 2. Upload file to a storage bucket (you'd need to create this first)
-      // In a real app, you would use a Supabase storage bucket
-      // For this example, we'll create a data URL
+      // 2. In a real app, you would upload to a storage bucket
       const reader = new FileReader();
       
       reader.onload = async (event) => {
         const fileUrl = event.target?.result as string;
         
         // 3. Create a new document record
-        const { data, error } = await supabase.from('documents').insert({
+        const { data, error } = await supabaseTyped.from('documents').insert({
           name: documentName || documentFile.name,
           url: fileUrl, // In real app, this would be storage URL
           type: documentFile.type,
@@ -115,7 +113,11 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
           category: data.category,
           visibleTo: data.visible_to,
           reviewed: data.reviewed || false,
-          comments: []
+          comments: [],
+          annotations: [],
+          tags: [],
+          version: 1,
+          metadata: {}
         };
         
         setUserDocuments(prev => [...prev, newDocument]);
@@ -145,7 +147,7 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
   
   const handleMarkAsReviewed = async (documentId: string, reviewed: boolean) => {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseTyped
         .from('documents')
         .update({ reviewed })
         .eq('id', documentId);

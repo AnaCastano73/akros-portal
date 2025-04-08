@@ -11,7 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { DocumentUpload } from '@/components/documents/DocumentUpload';
 import { useToast } from '@/components/ui/use-toast';
 import { formatFileSize } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseTyped } from '@/integrations/supabase/types-extension';
 import { Document } from '@/types/document';
 
 // Standard document categories
@@ -44,7 +44,7 @@ const DocumentManagement = () => {
   const fetchDocuments = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseTyped
         .from('documents')
         .select('*')
         .order('uploaded_at', { ascending: false });
@@ -66,7 +66,8 @@ const DocumentManagement = () => {
         version: doc.version || 1,
         tags: doc.tags || [],
         metadata: doc.metadata || {},
-        comments: []
+        comments: [],
+        annotations: []
       }));
       
       setDocuments(transformedDocs);
@@ -154,7 +155,7 @@ const DocumentManagement = () => {
         
         const allUserIds = allUsers.map(u => u.id);
         
-        const { data, error } = await supabase
+        const { data, error } = await supabaseTyped
           .from('documents')
           .insert({
             name: file.name,
@@ -182,7 +183,11 @@ const DocumentManagement = () => {
           category: data.category,
           visibleTo: data.visible_to,
           reviewed: false,
-          comments: []
+          comments: [],
+          annotations: [],
+          tags: [],
+          version: 1,
+          metadata: {}
         };
         
         setDocuments([newDocument, ...documents]);

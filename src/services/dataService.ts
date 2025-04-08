@@ -1,14 +1,15 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { supabaseTyped } from '@/integrations/supabase/types-extension';
 import { Document } from '@/types/document';
 import { Course, Module, Lesson, CourseProgress } from '@/types/course';
-import { User } from '@/types/auth';
+import { User, UserRole } from '@/types/auth';
 
 // Document functions
 export const getDocumentsForUser = async (userId: string): Promise<Document[]> => {
   if (!userId) return [];
   
-  const { data, error } = await supabase
+  const { data, error } = await supabaseTyped
     .from('documents')
     .select('*')
     .or(`visible_to.cs.{${userId}},uploaded_by.eq.${userId}`);
@@ -19,7 +20,7 @@ export const getDocumentsForUser = async (userId: string): Promise<Document[]> =
   }
   
   // Transform data to match Document type
-  return data.map((doc: any): Document => ({
+  return data.map((doc): Document => ({
     id: doc.id,
     name: doc.name,
     url: doc.url,
@@ -43,7 +44,7 @@ export const getCoursesForUser = async (userId: string): Promise<Course[]> => {
   if (!userId) return [];
   
   // Get enrolled courses for the user
-  const { data: enrollments, error: enrollmentsError } = await supabase
+  const { data: enrollments, error: enrollmentsError } = await supabaseTyped
     .from('course_enrollments')
     .select('course_id')
     .eq('user_id', userId);
@@ -59,7 +60,7 @@ export const getCoursesForUser = async (userId: string): Promise<Course[]> => {
   
   // Get course details for the enrolled courses
   const courseIds = enrollments.map(enrollment => enrollment.course_id);
-  const { data: courses, error: coursesError } = await supabase
+  const { data: courses, error: coursesError } = await supabaseTyped
     .from('courses')
     .select('*')
     .in('id', courseIds);
@@ -72,29 +73,66 @@ export const getCoursesForUser = async (userId: string): Promise<Course[]> => {
   // Transform data to match Course type
   return Promise.all(courses.map(async (course): Promise<Course> => {
     // Get modules for this course
-    const { data: modules } = await supabase
+    const { data: modules, error: modulesError } = await supabaseTyped
       .from('course_modules')
-      .select('*, course_lessons(*)')
+      .select('*')
       .eq('course_id', course.id)
       .order('order_index', { ascending: true });
       
-    const transformedModules: Module[] = (modules || []).map(mod => ({
-      id: mod.id,
-      title: mod.title,
-      description: mod.description || '',
-      lessons: (mod.course_lessons || []).map((lesson: any): Lesson => ({
+    if (modulesError) {
+      console.error('Error fetching modules:', modulesError);
+      return {
+        id: course.id,
+        title: course.title,
+        description: course.description,
+        thumbnailUrl: course.image_url || '/placeholder.svg',
+        modules: [],
+        tags: course.tags || [],
+        enrolledUsers: [],
+        createdAt: new Date(course.created_at)
+      };
+    }
+      
+    const transformedModules: Module[] = await Promise.all((modules || []).map(async (mod) => {
+      // Get lessons for this module
+      const { data: lessons, error: lessonsError } = await supabaseTyped
+        .from('course_lessons')
+        .select('*')
+        .eq('module_id', mod.id)
+        .order('order_index', { ascending: true });
+        
+      if (lessonsError) {
+        console.error('Error fetching lessons:', lessonsError);
+        return {
+          id: mod.id,
+          title: mod.title,
+          description: mod.description || '',
+          lessons: [],
+          order: mod.order_index
+        };
+      }
+
+      const transformedLessons: Lesson[] = (lessons || []).map((lesson) => ({
         id: lesson.id,
         title: lesson.title,
         content: lesson.content,
-        duration: lesson.duration || 0
-      }))
+        order: lesson.order_index
+      }));
+      
+      return {
+        id: mod.id,
+        title: mod.title,
+        description: mod.description || '',
+        lessons: transformedLessons,
+        order: mod.order_index
+      };
     }));
     
     return {
       id: course.id,
       title: course.title,
       description: course.description,
-      imageUrl: course.image_url || '/placeholder.svg',
+      thumbnailUrl: course.image_url || '/placeholder.svg',
       modules: transformedModules,
       tags: course.tags || [],
       enrolledUsers: [], // This would require another query
@@ -107,9 +145,9 @@ export const getCourseProgressForUser = async (userId: string): Promise<CoursePr
   if (!userId) return [];
   
   // Get user enrollments with course info
-  const { data: enrollments, error: enrollmentsError } = await supabase
+  const { data: enrollments, error: enrollmentsError } = await supabaseTyped
     .from('course_enrollments')
-    .select('*, course_id')
+    .select('*')
     .eq('user_id', userId);
     
   if (enrollmentsError || !enrollments) {
@@ -118,9 +156,9 @@ export const getCourseProgressForUser = async (userId: string): Promise<CoursePr
   }
   
   // Get completed lessons for this user
-  const { data: completedLessons, error: lessonsError } = await supabase
+  const { data: completedLessons, error: lessonsError } = await supabaseTyped
     .from('lesson_progress')
-    .select('lesson_id')
+    .select('*')
     .eq('user_id', userId)
     .eq('completed', true);
     
@@ -152,14 +190,14 @@ export const getAllUsers = async (): Promise<User[]> => {
     id: u.id,
     email: u.email || '',
     name: `${u.user_metadata?.first_name || ''} ${u.user_metadata?.last_name || ''}`.trim() || u.email?.split('@')[0] || 'Unknown',
-    role: determineUserRole(u.email || ''),
+    role: determineUserRole(u.email || '') as UserRole,
     avatar: u.user_metadata?.avatar_url || '/placeholder.svg'
   }));
 };
 
 // Helper function to determine user role based on email domain
 // In a real app, you would fetch this from a database
-const determineUserRole = (email: string) => {
+const determineUserRole = (email: string): UserRole => {
   if (email.endsWith('admin.akrosadvisory.com')) {
     return 'admin';
   } else if (email.endsWith('expert.akrosadvisory.com')) {

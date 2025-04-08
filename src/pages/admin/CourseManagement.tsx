@@ -10,7 +10,7 @@ import { Search, Edit, Plus, Trash, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { CreateCourseDialog } from '@/components/admin/CreateCourseDialog';
 import { toast } from "@/hooks/use-toast";
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseTyped } from '@/integrations/supabase/types-extension';
 import { Course } from '@/types/course';
 
 const CourseManagement = () => {
@@ -36,44 +36,70 @@ const CourseManagement = () => {
     setIsLoading(true);
     try {
       // Fetch courses
-      const { data, error } = await supabase
+      const { data, error } = await supabaseTyped
         .from('courses')
-        .select(`
-          *,
-          course_modules (
-            *,
-            course_lessons (*)
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
       
       // Transform data to match Course type
-      const transformedCourses: Course[] = (data || []).map(course => {
-        const modules = (course.course_modules || []).map(module => ({
-          id: module.id,
-          title: module.title,
-          description: module.description || '',
-          lessons: (module.course_lessons || []).map(lesson => ({
-            id: lesson.id,
-            title: lesson.title,
-            content: lesson.content,
-            duration: lesson.duration || 0
-          }))
-        }));
+      const transformedCourses: Course[] = await Promise.all((data || []).map(async (course) => {
+        // Get modules for this course
+        const { data: modules, error: modulesError } = await supabaseTyped
+          .from('course_modules')
+          .select('*')
+          .eq('course_id', course.id)
+          .order('order_index', { ascending: true });
+          
+        if (modulesError) {
+          console.error('Error fetching modules:', modulesError);
+          return {
+            id: course.id,
+            title: course.title,
+            description: course.description,
+            thumbnailUrl: course.image_url || '/placeholder.svg',
+            modules: [],
+            tags: course.tags || [],
+            enrolledUsers: [], // Would need another query
+            createdAt: new Date(course.created_at)
+          };
+        }
+        
+        // Get lesson counts for each module
+        const modulePromises = (modules || []).map(async (mod) => {
+          const { data: lessons } = await supabaseTyped
+            .from('course_lessons')
+            .select('*')
+            .eq('module_id', mod.id);
+            
+          return {
+            id: mod.id,
+            title: mod.title,
+            description: mod.description || '',
+            order: mod.order_index,
+            lessons: (lessons || []).map(lesson => ({
+              id: lesson.id,
+              title: lesson.title,
+              content: lesson.content,
+              order: lesson.order_index
+            }))
+          };
+        });
+        
+        const transformedModules = await Promise.all(modulePromises);
         
         return {
           id: course.id,
           title: course.title,
           description: course.description,
-          imageUrl: course.image_url || '/placeholder.svg',
-          modules: modules,
+          thumbnailUrl: course.image_url || '/placeholder.svg',
+          modules: transformedModules,
           tags: course.tags || [],
-          enrolledUsers: [], // Would need an additional query
+          enrolledUsers: [], // Would need another query
           createdAt: new Date(course.created_at)
         };
-      });
+      }));
       
       setCourses(transformedCourses);
     } catch (error: any) {
@@ -97,7 +123,7 @@ const CourseManagement = () => {
   // Delete course handler
   const handleDeleteCourse = async (courseId: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseTyped
         .from('courses')
         .delete()
         .eq('id', courseId);
