@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { DocumentsList } from '@/components/documents/DocumentsList';
 import { DocumentUpload } from '@/components/documents/DocumentUpload';
@@ -71,12 +70,10 @@ const Documents = () => {
         
       if (error) throw error;
       
-      // Update local state
       setDocuments(prevDocs => 
         prevDocs.map(doc => doc.id === documentId ? { ...doc, reviewed } : doc)
       );
       
-      // Record activity
       logDocumentActivity(documentId, 'update', reviewed ? 'Marked as reviewed' : 'Marked as unreviewed');
     } catch (error) {
       console.error('Error updating document:', error);
@@ -98,10 +95,8 @@ const Documents = () => {
         createdAt: new Date()
       });
       
-      // Update state to trigger re-render
       setDocuments([...documents]);
       
-      // Record activity
       logDocumentActivity(documentId, 'comment', 'Added a comment');
     }
   };
@@ -115,10 +110,8 @@ const Documents = () => {
       
       document.annotations.push(annotation);
       
-      // Update state to trigger re-render
       setDocuments([...documents]);
       
-      // Record activity
       logDocumentActivity(document.id, 'annotate', 'Added an annotation');
       
       toast({
@@ -141,12 +134,10 @@ const Documents = () => {
           
         if (error) throw error;
         
-        // Update local state
         setDocuments(prevDocs => 
           prevDocs.map(doc => doc.id === documentId ? { ...doc, tags: updatedTags } : doc)
         );
         
-        // Record activity
         logDocumentActivity(documentId, 'update', `Added tag "${tag}"`);
       } catch (error) {
         console.error('Error updating document tags:', error);
@@ -167,12 +158,10 @@ const Documents = () => {
           
         if (error) throw error;
         
-        // Update local state
         setDocuments(prevDocs => 
           prevDocs.map(doc => doc.id === documentId ? { ...doc, tags: updatedTags } : doc)
         );
         
-        // Record activity
         logDocumentActivity(documentId, 'update', `Removed tag "${tag}"`);
       } catch (error) {
         console.error('Error updating document tags:', error);
@@ -181,12 +170,10 @@ const Documents = () => {
   };
   
   const handleDownloadDocument = (documentId: string) => {
-    // Record activity
     logDocumentActivity(documentId, 'download', 'Downloaded the document');
   };
   
   const handleViewDocument = (documentId: string) => {
-    // Record activity
     logDocumentActivity(documentId, 'view', 'Viewed the document');
   };
 
@@ -202,21 +189,16 @@ const Documents = () => {
     if (!user) return;
     
     try {
-      // Generate a unique file name
       const fileName = `${Date.now()}_${file.name}`;
       
-      // In a production app, you would upload to Storage
-      // For this example, we'll use a data URL
       const reader = new FileReader();
       
       reader.onload = async (event) => {
         const fileUrl = event.target?.result as string;
         
-        // Handle new version of existing document
         if (isNewVersion && existingDocumentId) {
           const existingDocument = documents.find(doc => doc.id === existingDocumentId);
           if (existingDocument) {
-            // Update the document with new version info
             const { error } = await supabaseTyped
               .from('documents')
               .update({
@@ -229,7 +211,6 @@ const Documents = () => {
               
             if (error) throw error;
             
-            // Update local state
             setDocuments(prevDocs => 
               prevDocs.map(doc => {
                 if (doc.id === existingDocumentId) {
@@ -245,7 +226,6 @@ const Documents = () => {
               })
             );
             
-            // Record activity
             logDocumentActivity(
               existingDocumentId, 
               'version', 
@@ -261,7 +241,6 @@ const Documents = () => {
           }
         }
         
-        // Handle new document
         const { data, error } = await supabaseTyped
           .from('documents')
           .insert({
@@ -281,7 +260,6 @@ const Documents = () => {
           
         if (error) throw error;
         
-        // Add to local state
         const newDocument: Document = {
           id: data.id,
           name: data.name,
@@ -295,14 +273,13 @@ const Documents = () => {
           reviewed: false,
           version: 1,
           tags: data.tags || [],
-          metadata: data.metadata || {},
+          metadata: data.metadata,
           comments: [],
           annotations: []
         };
         
         setDocuments(prev => [newDocument, ...prev]);
         
-        // Record activity
         logDocumentActivity(data.id, 'upload', 'Uploaded new document');
         
         toast({
@@ -328,7 +305,6 @@ const Documents = () => {
     const document = documents.find(doc => doc.id === documentId);
     if (!document) return;
     
-    // In a real app, we would persist this to a database
     const activityRecord: DocumentActivity = {
       id: uuidv4(),
       documentId,
@@ -341,7 +317,6 @@ const Documents = () => {
     
     console.log('Document activity logged:', activityRecord);
     
-    // In a real app, this would be sent to the server
     return activityRecord;
   };
 

@@ -14,7 +14,7 @@ export interface Document {
   version?: number;
   versionHistory?: DocumentVersion[];
   tags?: string[];
-  metadata?: Record<string, any> | null; // Updated to handle null and any JSON format
+  metadata?: Record<string, any> | null | string | number | boolean; // Updated to handle any JSON format
   annotations?: DocumentAnnotation[];
   lastViewedAt?: Date;
 }

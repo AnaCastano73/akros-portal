@@ -17,7 +17,7 @@ import { Json } from '@/integrations/supabase/types';
 
 const DOCUMENT_CATEGORIES = [
   "Session Homework",
-  "Client Materials",
+  "Client Materials", 
   "Meeting Notes",
   "Final Deliverables"
 ];
@@ -52,20 +52,6 @@ const DocumentManagement = () => {
       if (error) throw error;
       
       const transformedDocs: Document[] = (data || []).map(doc => {
-        let metadata: Record<string, any> | null = null;
-        
-        if (doc.metadata) {
-          if (typeof doc.metadata === 'object') {
-            metadata = doc.metadata as Record<string, any>;
-          } else {
-            try {
-              metadata = { value: doc.metadata };
-            } catch (e) {
-              metadata = null;
-            }
-          }
-        }
-        
         return {
           id: doc.id,
           name: doc.name,
@@ -79,7 +65,7 @@ const DocumentManagement = () => {
           reviewed: doc.reviewed || false,
           version: doc.version || 1,
           tags: doc.tags || [],
-          metadata,
+          metadata: doc.metadata,
           comments: [],
           annotations: []
         };
@@ -158,11 +144,13 @@ const DocumentManagement = () => {
       reader.onload = async (event) => {
         const fileUrl = event.target?.result as string;
         
-        const { data, error: usersError } = await supabase.auth.admin.listUsers();
+        const { data: usersData } = await supabase.auth.admin.listUsers();
         
-        if (usersError) throw usersError;
+        if (!usersData) {
+          throw new Error("Failed to fetch users");
+        }
         
-        const allUserIds = (data?.users || []).map(u => u.id);
+        const allUserIds = (usersData.users || []).map(u => u.id);
         
         const { data: docData, error } = await supabaseTyped
           .from('documents')
@@ -195,7 +183,7 @@ const DocumentManagement = () => {
           annotations: [],
           tags: [],
           version: 1,
-          metadata: {}
+          metadata: docData.metadata
         };
         
         setDocuments([newDocument, ...documents]);

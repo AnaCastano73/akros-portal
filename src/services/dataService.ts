@@ -21,22 +21,6 @@ export const getDocumentsForUser = async (userId: string): Promise<Document[]> =
   
   // Transform data to match Document type
   return data.map((doc): Document => {
-    let metadata: Record<string, any> | null = null;
-    
-    // Handle different types of metadata
-    if (doc.metadata) {
-      if (typeof doc.metadata === 'object') {
-        metadata = doc.metadata as Record<string, any>;
-      } else {
-        // Convert other types to a proper format or set to null
-        try {
-          metadata = { value: doc.metadata };
-        } catch (e) {
-          metadata = null;
-        }
-      }
-    }
-    
     return {
       id: doc.id,
       name: doc.name,
@@ -50,7 +34,7 @@ export const getDocumentsForUser = async (userId: string): Promise<Document[]> =
       reviewed: doc.reviewed || false,
       version: doc.version || 1,
       tags: doc.tags || [],
-      metadata,
+      metadata: doc.metadata,
       annotations: [],
       comments: []
     };
