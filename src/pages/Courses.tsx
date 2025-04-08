@@ -2,21 +2,42 @@
 import { useState, useEffect } from 'react';
 import { CoursesList } from '@/components/courses/CoursesList';
 import { useAuth } from '@/contexts/AuthContext';
-import { getCoursesForUser, getCourseProgressForUser } from '@/services/mockData';
+import { getCoursesForUser, getCourseProgressForUser } from '@/services/dataService';
+import { Course, CourseProgress } from '@/types/course';
 
 const Courses = () => {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [progress, setProgress] = useState<CourseProgress[]>([]);
 
   useEffect(() => {
     document.title = 'Courses - Healthwise Advisory Hub';
-    // Simulate loading
-    const timer = setTimeout(() => {
+    if (user) {
+      fetchUserData();
+    } else {
       setIsLoading(false);
-    }, 500);
+    }
+  }, [user]);
+
+  const fetchUserData = async () => {
+    if (!user) return;
     
-    return () => clearTimeout(timer);
-  }, []);
+    setIsLoading(true);
+    try {
+      const [coursesData, progressData] = await Promise.all([
+        getCoursesForUser(user.id),
+        getCourseProgressForUser(user.id)
+      ]);
+      
+      setCourses(coursesData);
+      setProgress(progressData);
+    } catch (error) {
+      console.error('Error fetching courses data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (!user || isLoading) {
     return (
@@ -34,9 +55,6 @@ const Courses = () => {
     );
   }
 
-  const userCourses = getCoursesForUser(user.id);
-  const progress = getCourseProgressForUser(user.id);
-
   return (
     <div className="space-y-6">
       <div>
@@ -46,7 +64,7 @@ const Courses = () => {
         </p>
       </div>
       
-      <CoursesList courses={userCourses} progress={progress} />
+      <CoursesList courses={courses} progress={progress} />
     </div>
   );
 };

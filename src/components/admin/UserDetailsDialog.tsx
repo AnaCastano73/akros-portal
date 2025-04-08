@@ -7,15 +7,16 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { FileUpload } from '@/components/ui/file-upload';
-import { Document as DocumentType } from '@/types/document';
+import { Document } from '@/types/document';
 import { User } from '@/types/auth';
-import { DOCUMENTS } from '@/services/mockData';
 import { DocumentCard } from '@/components/documents/DocumentCard';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
-import { v4 as uuidv4 } from '@/lib/utils';
 import { FilePlus, Users } from 'lucide-react';
+import { v4 as uuidv4 } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { getDocumentsForUser } from '@/services/dataService';
 
 // Standard document categories
 const DOCUMENT_CATEGORIES = [
@@ -36,13 +37,35 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
   const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [documentCategory, setDocumentCategory] = useState('');
   const [documentName, setDocumentName] = useState('');
+  const [userDocuments, setUserDocuments] = useState<Document[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   
-  // Get documents for this user
-  const userDocuments = DOCUMENTS.filter(doc => 
-    doc.visibleTo.includes(user?.id || '') || doc.uploadedBy === user?.id
-  );
+  // Fetch documents when dialog opens and user changes
+  const fetchUserDocuments = async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      const documents = await getDocumentsForUser(user.id);
+      setUserDocuments(documents);
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load user documents',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
-  const handleUploadDocument = () => {
+  // Fetch documents when the dialog opens or user changes
+  if (isOpen && user && !isLoading && userDocuments.length === 0) {
+    fetchUserDocuments();
+  }
+  
+  const handleUploadDocument = async () => {
     if (!user || !documentFile || !documentCategory) {
       toast({
         title: "Missing information",
@@ -52,54 +75,126 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
       return;
     }
     
-    // Create a new document
-    const newDocument: DocumentType = {
-      id: uuidv4(),
-      name: documentName || documentFile.name,
-      url: URL.createObjectURL(documentFile),
-      type: documentFile.type,
-      size: documentFile.size,
-      uploadedBy: 'admin', // Current admin user ID would be used here in a real app
-      uploadedAt: new Date(),
-      category: documentCategory,
-      visibleTo: [user.id], // Only visible to this specific user
-      reviewed: false
-    };
-    
-    // Add to documents
-    DOCUMENTS.push(newDocument);
-    
-    toast({
-      title: "Document uploaded",
-      description: `Document has been uploaded and shared with ${user.name}`
-    });
-    
-    // Reset form
-    setDocumentFile(null);
-    setDocumentName('');
-  };
-  
-  const handleMarkAsReviewed = (documentId: string, reviewed: boolean) => {
-    const document = DOCUMENTS.find(doc => doc.id === documentId);
-    if (document) {
-      document.reviewed = reviewed;
+    setIsLoading(true);
+    try {
+      // 1. Create a unique filename
+      const fileName = `${Date.now()}_${documentFile.name}`;
+      
+      // 2. Upload file to a storage bucket (you'd need to create this first)
+      // In a real app, you would use a Supabase storage bucket
+      // For this example, we'll create a data URL
+      const reader = new FileReader();
+      
+      reader.onload = async (event) => {
+        const fileUrl = event.target?.result as string;
+        
+        // 3. Create a new document record
+        const { data, error } = await supabase.from('documents').insert({
+          name: documentName || documentFile.name,
+          url: fileUrl, // In real app, this would be storage URL
+          type: documentFile.type,
+          size: documentFile.size,
+          uploaded_by: 'admin', // Current admin user ID would be used here in a real app
+          category: documentCategory,
+          visible_to: [user.id], // Only visible to this specific user
+        }).select().single();
+        
+        if (error) {
+          throw error;
+        }
+        
+        // 4. Add the document to the local state
+        const newDocument: Document = {
+          id: data.id,
+          name: data.name,
+          url: data.url,
+          type: data.type,
+          size: data.size,
+          uploadedBy: data.uploaded_by,
+          uploadedAt: new Date(data.uploaded_at),
+          category: data.category,
+          visibleTo: data.visible_to,
+          reviewed: data.reviewed || false,
+          comments: []
+        };
+        
+        setUserDocuments(prev => [...prev, newDocument]);
+        
+        toast({
+          title: "Document uploaded",
+          description: `Document has been uploaded and shared with ${user.name}`
+        });
+        
+        // Reset form
+        setDocumentFile(null);
+        setDocumentName('');
+      };
+      
+      reader.readAsDataURL(documentFile);
+    } catch (error: any) {
+      console.error('Error uploading document:', error);
+      toast({
+        title: "Upload failed",
+        description: error.message || "An error occurred while uploading the document",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
   
-  const handleAddComment = (documentId: string, comment: string) => {
-    const document = DOCUMENTS.find(doc => doc.id === documentId);
-    if (document && user) {
-      if (!document.comments) {
-        document.comments = [];
-      }
+  const handleMarkAsReviewed = async (documentId: string, reviewed: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .update({ reviewed })
+        .eq('id', documentId);
+        
+      if (error) throw error;
       
-      document.comments.push({
+      // Update local state
+      setUserDocuments(prevDocs => 
+        prevDocs.map(doc => doc.id === documentId ? { ...doc, reviewed } : doc)
+      );
+    } catch (error) {
+      console.error('Error updating document:', error);
+      toast({
+        title: "Update failed",
+        description: "Failed to update document status",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  const handleAddComment = async (documentId: string, comment: string) => {
+    // In a real app, you would store comments in a separate table
+    // For simplicity, we'll just update the document with the new comment
+    try {
+      const document = userDocuments.find(doc => doc.id === documentId);
+      if (!document) return;
+      
+      const newComment = {
         id: uuidv4(),
         userId: 'admin', // Current admin user ID would be used here in a real app
         userName: 'Admin', // Current admin name would be used here in a real app
         content: comment,
         createdAt: new Date()
-      });
+      };
+      
+      // Update local state optimistically
+      setUserDocuments(prevDocs => 
+        prevDocs.map(doc => {
+          if (doc.id === documentId) {
+            return {
+              ...doc,
+              comments: [...(doc.comments || []), newComment]
+            };
+          }
+          return doc;
+        })
+      );
+    } catch (error) {
+      console.error('Error adding comment:', error);
     }
   };
   
@@ -176,16 +271,22 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
                 </div>
                 <Button 
                   onClick={handleUploadDocument} 
-                  disabled={!documentFile || !documentCategory}
+                  disabled={!documentFile || !documentCategory || isLoading}
                   className="bg-brand-500 hover:bg-brand-600 w-full md:w-auto"
                 >
-                  Upload Document for {user.name}
+                  {isLoading ? 'Uploading...' : `Upload Document for ${user.name}`}
                 </Button>
               </div>
             </div>
             
             <h3 className="text-lg font-medium">User Documents</h3>
-            {userDocuments.length > 0 ? (
+            {isLoading ? (
+              <div className="animate-pulse space-y-4">
+                {[...Array(2)].map((_, index) => (
+                  <div key={index} className="border rounded-md p-4 h-36"></div>
+                ))}
+              </div>
+            ) : userDocuments.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {userDocuments.map(document => (
                   <DocumentCard

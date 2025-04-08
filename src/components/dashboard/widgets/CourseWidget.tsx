@@ -1,12 +1,13 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { DashboardWidget as WidgetType } from '@/contexts/DashboardConfigContext';
 import { DashboardWidget } from '@/components/dashboard/DashboardWidget';
 import { CourseCard } from '@/components/courses/CourseCard';
-import { getCoursesForUser, getCourseProgressForUser, COURSES } from '@/services/mockData';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { getCoursesForUser, getCourseProgressForUser } from '@/services/dataService';
+import { Course, CourseProgress } from '@/types/course';
 
 interface CourseWidgetProps {
   widget: WidgetType;
@@ -16,19 +17,41 @@ interface CourseWidgetProps {
 export const CourseWidget: React.FC<CourseWidgetProps> = ({ widget, isEditing }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [userCourses, setUserCourses] = useState<Course[]>([]);
+  const [courseProgress, setCourseProgress] = useState<CourseProgress[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
-  if (!user) return null;
+  useEffect(() => {
+    if (user) {
+      fetchUserData();
+    }
+  }, [user]);
 
-  // Get relevant data for the user
-  const userCourses = getCoursesForUser(user.id);
-  const courseProgress = getCourseProgressForUser(user.id);
-
+  const fetchUserData = async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      const [courses, progress] = await Promise.all([
+        getCoursesForUser(user.id),
+        getCourseProgressForUser(user.id)
+      ]);
+      
+      setUserCourses(courses);
+      setCourseProgress(progress);
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   // Calculate progress percentages for user's courses
   const getProgressPercentage = (courseId: string) => {
     const progress = courseProgress.find(p => p.courseId === courseId);
     if (!progress) return 0;
     
-    const course = COURSES.find(c => c.id === courseId);
+    const course = userCourses.find(c => c.id === courseId);
     if (!course) return 0;
     
     const totalLessons = course.modules.reduce(
@@ -36,6 +59,7 @@ export const CourseWidget: React.FC<CourseWidgetProps> = ({ widget, isEditing })
       0
     );
     
+    if (totalLessons === 0) return 0;
     return Math.round((progress.completedLessons.length / totalLessons) * 100);
   };
 
@@ -46,6 +70,17 @@ export const CourseWidget: React.FC<CourseWidgetProps> = ({ widget, isEditing })
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, widget: WidgetType) => {
     e.dataTransfer.setData('widget', JSON.stringify(widget));
   };
+
+  if (isLoading) {
+    return (
+      <DashboardWidget widget={widget} isEditing={isEditing} onDragStart={handleDragStart}>
+        <div className="animate-pulse space-y-3">
+          <div className="h-20 bg-gray-200 rounded"></div>
+          <div className="h-20 bg-gray-200 rounded"></div>
+        </div>
+      </DashboardWidget>
+    );
+  }
 
   return (
     <DashboardWidget widget={widget} isEditing={isEditing} onDragStart={handleDragStart}>

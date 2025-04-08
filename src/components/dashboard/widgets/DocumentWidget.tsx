@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Document } from '@/types/document';
+import { getDocumentsForUser } from '@/services/dataService';
 
 interface DocumentWidgetProps {
   widget: WidgetType;
@@ -31,17 +32,13 @@ export const DocumentWidget: React.FC<DocumentWidgetProps> = ({ widget, isEditin
     
     setIsLoading(true);
     try {
-      // In a real implementation, you would fetch documents from your Supabase table
-      const { data, error } = await supabase
-        .from('documents')
-        .select('*')
-        .eq('visible_to', user.id)
-        .order('uploaded_at', { ascending: false })
-        .limit(widget.config?.count || 2);
-        
-      if (error) throw error;
+      const docs = await getDocumentsForUser(user.id);
+      // Get only the most recent documents based on widget config
+      const recentDocs = docs.sort((a, b) => 
+        b.uploadedAt.getTime() - a.uploadedAt.getTime()
+      ).slice(0, widget.config?.count || 2);
       
-      setDocuments(data || []);
+      setDocuments(recentDocs);
     } catch (error) {
       console.error('Error fetching documents:', error);
     } finally {

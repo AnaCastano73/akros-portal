@@ -7,10 +7,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Search, Edit, Plus, Trash, Users } from 'lucide-react';
-import { COURSES } from '@/services/mockData';
 import { useNavigate } from 'react-router-dom';
 import { CreateCourseDialog } from '@/components/admin/CreateCourseDialog';
 import { toast } from "@/hooks/use-toast";
+import { supabase } from '@/integrations/supabase/client';
+import { Course } from '@/types/course';
 
 const CourseManagement = () => {
   const { user } = useAuth();
@@ -18,18 +19,74 @@ const CourseManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState(null);
-  const [courses, setCourses] = useState(COURSES);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [courses, setCourses] = useState<Course[]>([]);
 
   useEffect(() => {
     document.title = 'Course Management - Healthwise Advisory Hub';
-    // Simulate loading
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
     
-    return () => clearTimeout(timer);
-  }, []);
+    if (user?.role === 'admin') {
+      fetchCourses();
+    } else {
+      setIsLoading(false);
+    }
+  }, [user]);
+
+  const fetchCourses = async () => {
+    setIsLoading(true);
+    try {
+      // Fetch courses
+      const { data, error } = await supabase
+        .from('courses')
+        .select(`
+          *,
+          course_modules (
+            *,
+            course_lessons (*)
+          )
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      // Transform data to match Course type
+      const transformedCourses: Course[] = (data || []).map(course => {
+        const modules = (course.course_modules || []).map(module => ({
+          id: module.id,
+          title: module.title,
+          description: module.description || '',
+          lessons: (module.course_lessons || []).map(lesson => ({
+            id: lesson.id,
+            title: lesson.title,
+            content: lesson.content,
+            duration: lesson.duration || 0
+          }))
+        }));
+        
+        return {
+          id: course.id,
+          title: course.title,
+          description: course.description,
+          imageUrl: course.image_url || '/placeholder.svg',
+          modules: modules,
+          tags: course.tags || [],
+          enrolledUsers: [], // Would need an additional query
+          createdAt: new Date(course.created_at)
+        };
+      });
+      
+      setCourses(transformedCourses);
+    } catch (error: any) {
+      console.error('Error fetching courses:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to load courses',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Check if user is admin
   if (user?.role !== 'admin') {
@@ -38,31 +95,39 @@ const CourseManagement = () => {
   }
 
   // Delete course handler
-  const handleDeleteCourse = (courseId: string) => {
-    const updatedCourses = courses.filter(course => course.id !== courseId);
-    setCourses(updatedCourses);
-    
-    // In a real app, this would be an API call
-    // But for mock data, we're just updating the local state
-    // We'll also update the COURSES array to keep data consistent
-    const indexToRemove = COURSES.findIndex(course => course.id === courseId);
-    if (indexToRemove !== -1) {
-      COURSES.splice(indexToRemove, 1);
+  const handleDeleteCourse = async (courseId: string) => {
+    try {
+      const { error } = await supabase
+        .from('courses')
+        .delete()
+        .eq('id', courseId);
+        
+      if (error) throw error;
+      
+      // Update local state
+      setCourses(courses.filter(course => course.id !== courseId));
+      
+      toast({
+        title: "Course deleted",
+        description: "The course has been deleted successfully",
+      });
+    } catch (error: any) {
+      console.error('Error deleting course:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete course',
+        variant: 'destructive',
+      });
     }
-    
-    toast({
-      title: "Course deleted",
-      description: "The course has been deleted successfully",
-    });
   };
 
   // Edit course handler
-  const handleEditCourse = (course) => {
+  const handleEditCourse = (course: Course) => {
     setSelectedCourse(course);
     setIsCreateDialogOpen(true);
   };
 
-  const handleManageEnrollments = (course) => {
+  const handleManageEnrollments = (course: Course) => {
     // This would open a dialog to manage course enrollments
     // For now, just show a toast
     toast({
@@ -93,6 +158,8 @@ const CourseManagement = () => {
   const handleCreateDialogClose = () => {
     setIsCreateDialogOpen(false);
     setSelectedCourse(null);
+    // Refresh courses after dialog closes
+    fetchCourses();
   };
 
   return (

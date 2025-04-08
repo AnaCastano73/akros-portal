@@ -89,6 +89,233 @@ export type Database = {
         }
         Relationships: []
       }
+      course_enrollments: {
+        Row: {
+          completed: boolean | null
+          course_id: string
+          enrolled_at: string
+          id: string
+          last_accessed: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean | null
+          course_id: string
+          enrolled_at?: string
+          id?: string
+          last_accessed?: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean | null
+          course_id?: string
+          enrolled_at?: string
+          id?: string
+          last_accessed?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_enrollments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      course_lessons: {
+        Row: {
+          content: string
+          created_at: string
+          duration: number | null
+          id: string
+          module_id: string
+          order_index: number
+          title: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          duration?: number | null
+          id?: string
+          module_id: string
+          order_index: number
+          title: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          duration?: number | null
+          id?: string
+          module_id?: string
+          order_index?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_lessons_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      course_modules: {
+        Row: {
+          course_id: string
+          created_at: string
+          description: string | null
+          id: string
+          order_index: number
+          title: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_index: number
+          title: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_index?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_modules_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courses: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string
+          id: string
+          image_url: string | null
+          published: boolean | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description: string
+          id?: string
+          image_url?: string | null
+          published?: boolean | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string
+          id?: string
+          image_url?: string | null
+          published?: boolean | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      documents: {
+        Row: {
+          category: string
+          id: string
+          metadata: Json | null
+          name: string
+          reviewed: boolean | null
+          size: number
+          tags: string[] | null
+          type: string
+          uploaded_at: string
+          uploaded_by: string
+          url: string
+          version: number | null
+          visible_to: string[]
+        }
+        Insert: {
+          category: string
+          id?: string
+          metadata?: Json | null
+          name: string
+          reviewed?: boolean | null
+          size: number
+          tags?: string[] | null
+          type: string
+          uploaded_at?: string
+          uploaded_by: string
+          url: string
+          version?: number | null
+          visible_to: string[]
+        }
+        Update: {
+          category?: string
+          id?: string
+          metadata?: Json | null
+          name?: string
+          reviewed?: boolean | null
+          size?: number
+          tags?: string[] | null
+          type?: string
+          uploaded_at?: string
+          uploaded_by?: string
+          url?: string
+          version?: number | null
+          visible_to?: string[]
+        }
+        Relationships: []
+      }
+      lesson_progress: {
+        Row: {
+          completed: boolean | null
+          completed_at: string | null
+          created_at: string
+          id: string
+          lesson_id: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          lesson_id: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          lesson_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_progress_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "course_lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           browser_notifications: boolean | null

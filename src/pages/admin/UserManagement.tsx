@@ -10,8 +10,8 @@ import { Search, Edit, UserPlus, BookOpen, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { UserDetailsDialog } from '@/components/admin/UserDetailsDialog';
 import { User } from '@/types/auth';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { getAllUsers } from '@/services/dataService';
 
 const UserManagement = () => {
   const { user } = useAuth();
@@ -34,23 +34,8 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      // Fetch all users - in a real app, you would use proper pagination
-      const { data, error } = await supabase.auth.admin.listUsers();
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Map to our User type
-      const mappedUsers: User[] = data.users.map(u => ({
-        id: u.id,
-        email: u.email || '',
-        name: `${u.user_metadata.first_name || ''} ${u.user_metadata.last_name || ''}`.trim() || u.email?.split('@')[0] || 'Unknown',
-        role: determineUserRole(u.email || ''),
-        avatar: u.user_metadata.avatar_url || '/placeholder.svg'
-      }));
-      
-      setUsers(mappedUsers);
+      const usersData = await getAllUsers();
+      setUsers(usersData);
     } catch (error: any) {
       console.error('Error fetching users:', error);
       toast({
@@ -60,19 +45,6 @@ const UserManagement = () => {
       });
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  // Determine user role based on email
-  const determineUserRole = (email: string) => {
-    if (email.endsWith('admin.akrosadvisory.com')) {
-      return 'admin';
-    } else if (email.endsWith('expert.akrosadvisory.com')) {
-      return 'expert';
-    } else if (email.endsWith('employee.akrosadvisory.com')) {
-      return 'employee';
-    } else {
-      return 'client';
     }
   };
 

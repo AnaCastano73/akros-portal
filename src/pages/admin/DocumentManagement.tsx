@@ -7,11 +7,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Search, Download, MessageSquare, Upload, Check, X } from 'lucide-react';
-import { DOCUMENTS, USERS } from '@/services/mockData';
 import { useNavigate } from 'react-router-dom';
 import { DocumentUpload } from '@/components/documents/DocumentUpload';
 import { useToast } from '@/components/ui/use-toast';
-import { formatFileSize, v4 as uuidv4 } from '@/lib/utils';
+import { formatFileSize } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { Document } from '@/types/document';
 
 // Standard document categories
 const DOCUMENT_CATEGORIES = [
@@ -27,16 +28,75 @@ const DocumentManagement = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [users, setUsers] = useState<{ id: string, name: string }[]>([]);
 
   useEffect(() => {
     document.title = 'Document Management - Akros Advisory';
-    // Simulate loading
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
     
-    return () => clearTimeout(timer);
-  }, []);
+    if (user?.role === 'admin') {
+      Promise.all([fetchDocuments(), fetchUsers()]);
+    } else {
+      setIsLoading(false);
+    }
+  }, [user]);
+
+  const fetchDocuments = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .order('uploaded_at', { ascending: false });
+        
+      if (error) throw error;
+      
+      // Transform to match Document type
+      const transformedDocs: Document[] = (data || []).map(doc => ({
+        id: doc.id,
+        name: doc.name,
+        url: doc.url,
+        type: doc.type,
+        size: doc.size,
+        uploadedBy: doc.uploaded_by,
+        uploadedAt: new Date(doc.uploaded_at),
+        category: doc.category,
+        visibleTo: doc.visible_to,
+        reviewed: doc.reviewed || false,
+        version: doc.version || 1,
+        tags: doc.tags || [],
+        metadata: doc.metadata || {},
+        comments: []
+      }));
+      
+      setDocuments(transformedDocs);
+    } catch (error: any) {
+      console.error('Error fetching documents:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to load documents',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const fetchUsers = async () => {
+    try {
+      const { data: { users: userData }, error } = await supabase.auth.admin.listUsers();
+      
+      if (error) throw error;
+      
+      setUsers(userData.map(u => ({
+        id: u.id,
+        name: `${u.user_metadata?.first_name || ''} ${u.user_metadata?.last_name || ''}`.trim() || 
+              u.email?.split('@')[0] || 'Unknown User'
+      })));
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
 
   // Check if user is admin
   if (user?.role !== 'admin') {
@@ -57,43 +117,91 @@ const DocumentManagement = () => {
   }
 
   // Filter documents based on search term
-  const filteredDocuments = DOCUMENTS.filter(doc => 
+  const filteredDocuments = documents.filter(doc => 
     doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    doc.category.toLowerCase().includes(searchTerm.toLowerCase())
+    doc.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (doc.tags || []).some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const getUserName = (userId: string) => {
-    const foundUser = USERS.find(u => u.id === userId);
+    const foundUser = users.find(u => u.id === userId);
     return foundUser ? foundUser.name : 'Unknown User';
   };
 
   const getVisibleToUsers = (userIds: string[]) => {
     return userIds.map(id => {
-      const foundUser = USERS.find(u => u.id === id);
+      const foundUser = users.find(u => u.id === id);
       return foundUser ? foundUser.name : 'Unknown User';
     }).join(', ');
   };
 
-  const handleUploadDocument = (file: File, category: string) => {
-    const newDocument = {
-      id: uuidv4(),
-      name: file.name,
-      url: URL.createObjectURL(file),
-      type: file.type,
-      size: file.size,
-      uploadedBy: user.id,
-      uploadedAt: new Date(),
-      category,
-      visibleTo: USERS.map(u => u.id), // Make visible to all users
-      reviewed: false,
-    };
-    
-    DOCUMENTS.push(newDocument);
-    
-    toast({
-      title: 'Document uploaded',
-      description: `${file.name} has been uploaded successfully and shared with all users.`,
-    });
+  const handleUploadDocument = async (file: File, category: string) => {
+    try {
+      // Generate a unique file name
+      const fileName = `${Date.now()}_${file.name}`;
+      
+      // In a production app, you would upload to Storage
+      // For this example, we'll use a data URL
+      const reader = new FileReader();
+      
+      reader.onload = async (event) => {
+        const fileUrl = event.target?.result as string;
+        
+        // Create document record visible to all users
+        const { data: { users: allUsers }, error: usersError } = await supabase.auth.admin.listUsers();
+        
+        if (usersError) throw usersError;
+        
+        const allUserIds = allUsers.map(u => u.id);
+        
+        const { data, error } = await supabase
+          .from('documents')
+          .insert({
+            name: file.name,
+            url: fileUrl,
+            type: file.type,
+            size: file.size,
+            uploaded_by: user.id,
+            category,
+            visible_to: allUserIds
+          })
+          .select()
+          .single();
+          
+        if (error) throw error;
+        
+        // Add to local state
+        const newDocument: Document = {
+          id: data.id,
+          name: data.name,
+          url: data.url,
+          type: data.type,
+          size: data.size,
+          uploadedBy: data.uploaded_by,
+          uploadedAt: new Date(data.uploaded_at),
+          category: data.category,
+          visibleTo: data.visible_to,
+          reviewed: false,
+          comments: []
+        };
+        
+        setDocuments([newDocument, ...documents]);
+        
+        toast({
+          title: 'Document uploaded',
+          description: `${file.name} has been uploaded successfully and shared with all users.`,
+        });
+      };
+      
+      reader.readAsDataURL(file);
+    } catch (error: any) {
+      console.error('Error uploading document:', error);
+      toast({
+        title: 'Upload failed',
+        description: error.message || 'An error occurred while uploading the document',
+        variant: 'destructive'
+      });
+    }
   };
 
   return (
@@ -156,7 +264,7 @@ const DocumentManagement = () => {
                     </TableCell>
                     <TableCell>{getUserName(doc.uploadedBy)}</TableCell>
                     <TableCell>
-                      {new Date(doc.uploadedAt).toLocaleDateString()}
+                      {doc.uploadedAt.toLocaleDateString()}
                     </TableCell>
                     <TableCell className="max-w-[200px] truncate" title={getVisibleToUsers(doc.visibleTo)}>
                       {getVisibleToUsers(doc.visibleTo)}

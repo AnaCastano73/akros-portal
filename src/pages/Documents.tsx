@@ -3,10 +3,11 @@ import { useState, useEffect } from 'react';
 import { DocumentsList } from '@/components/documents/DocumentsList';
 import { DocumentUpload } from '@/components/documents/DocumentUpload';
 import { useAuth } from '@/contexts/AuthContext';
-import { DOCUMENTS, getDocumentsForUser } from '@/services/mockData';
+import { getDocumentsForUser } from '@/services/dataService';
 import { useToast } from '@/components/ui/use-toast';
+import { Document, DocumentAnnotation, DocumentActivity } from '@/types/document';
+import { supabase } from '@/integrations/supabase/client';
 import { v4 as uuidv4 } from '@/lib/utils';
-import { DocumentAnnotation, DocumentVersion, DocumentActivity } from '@/types/document';
 
 // Standard document categories
 const DOCUMENT_CATEGORIES = [
@@ -20,17 +21,30 @@ const Documents = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
-  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [documents, setDocuments] = useState<Document[]>([]);
 
   useEffect(() => {
     document.title = 'Documents - Akros Advisory';
-    // Simulate loading
-    const timer = setTimeout(() => {
+    if (user) {
+      fetchDocuments();
+    } else {
       setIsLoading(false);
-    }, 500);
+    }
+  }, [user]);
+
+  const fetchDocuments = async () => {
+    if (!user) return;
     
-    return () => clearTimeout(timer);
-  }, []);
+    setIsLoading(true);
+    try {
+      const docs = await getDocumentsForUser(user.id);
+      setDocuments(docs);
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (!user || isLoading) {
     return (
@@ -48,21 +62,30 @@ const Documents = () => {
     );
   }
 
-  const userDocuments = getDocumentsForUser(user.id);
-
-  const handleMarkAsReviewed = (documentId: string, reviewed: boolean) => {
-    const document = DOCUMENTS.find(doc => doc.id === documentId);
-    if (document) {
-      document.reviewed = reviewed;
+  const handleMarkAsReviewed = async (documentId: string, reviewed: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('documents')
+        .update({ reviewed })
+        .eq('id', documentId);
+        
+      if (error) throw error;
+      
+      // Update local state
+      setDocuments(prevDocs => 
+        prevDocs.map(doc => doc.id === documentId ? { ...doc, reviewed } : doc)
+      );
       
       // Record activity
       logDocumentActivity(documentId, 'update', reviewed ? 'Marked as reviewed' : 'Marked as unreviewed');
+    } catch (error) {
+      console.error('Error updating document:', error);
     }
   };
 
   const handleAddComment = (documentId: string, comment: string) => {
-    const document = DOCUMENTS.find(doc => doc.id === documentId);
-    if (document) {
+    const document = documents.find(doc => doc.id === documentId);
+    if (document && user) {
       if (!document.comments) {
         document.comments = [];
       }
@@ -75,19 +98,25 @@ const Documents = () => {
         createdAt: new Date()
       });
       
+      // Update state to trigger re-render
+      setDocuments([...documents]);
+      
       // Record activity
       logDocumentActivity(documentId, 'comment', 'Added a comment');
     }
   };
   
   const handleAddAnnotation = (annotation: DocumentAnnotation) => {
-    const document = DOCUMENTS.find(doc => doc.id === annotation.documentId);
+    const document = documents.find(doc => doc.id === annotation.documentId);
     if (document) {
       if (!document.annotations) {
         document.annotations = [];
       }
       
       document.annotations.push(annotation);
+      
+      // Update state to trigger re-render
+      setDocuments([...documents]);
       
       // Record activity
       logDocumentActivity(document.id, 'annotate', 'Added an annotation');
@@ -99,45 +128,54 @@ const Documents = () => {
     }
   };
   
-  const handleAddTag = (documentId: string, tag: string) => {
-    const document = DOCUMENTS.find(doc => doc.id === documentId);
+  const handleAddTag = async (documentId: string, tag: string) => {
+    const document = documents.find(doc => doc.id === documentId);
     if (document) {
-      if (!document.tags) {
-        document.tags = [];
-      }
+      const updatedTags = [...(document.tags || []), tag];
       
-      document.tags.push(tag);
-      
-      // Record activity
-      logDocumentActivity(documentId, 'update', `Added tag "${tag}"`);
-    }
-  };
-  
-  const handleRemoveTag = (documentId: string, tag: string) => {
-    const document = DOCUMENTS.find(doc => doc.id === documentId);
-    if (document && document.tags) {
-      document.tags = document.tags.filter(t => t !== tag);
-      
-      // Record activity
-      logDocumentActivity(documentId, 'update', `Removed tag "${tag}"`);
-    }
-  };
-  
-  const handleRevertToVersion = (documentId: string, versionId: string) => {
-    const document = DOCUMENTS.find(doc => doc.id === documentId);
-    if (document && document.versionHistory) {
-      const version = document.versionHistory.find(v => v.id === versionId);
-      if (version) {
-        // In a real app, we would update the document content with the version content
-        // For this demo, we'll just log it
+      try {
+        const { error } = await supabase
+          .from('documents')
+          .update({ tags: updatedTags })
+          .eq('id', documentId);
+          
+        if (error) throw error;
+        
+        // Update local state
+        setDocuments(prevDocs => 
+          prevDocs.map(doc => doc.id === documentId ? { ...doc, tags: updatedTags } : doc)
+        );
         
         // Record activity
-        logDocumentActivity(documentId, 'version', `Reverted to version ${version.version}`);
+        logDocumentActivity(documentId, 'update', `Added tag "${tag}"`);
+      } catch (error) {
+        console.error('Error updating document tags:', error);
+      }
+    }
+  };
+  
+  const handleRemoveTag = async (documentId: string, tag: string) => {
+    const document = documents.find(doc => doc.id === documentId);
+    if (document && document.tags) {
+      const updatedTags = document.tags.filter(t => t !== tag);
+      
+      try {
+        const { error } = await supabase
+          .from('documents')
+          .update({ tags: updatedTags })
+          .eq('id', documentId);
+          
+        if (error) throw error;
         
-        toast({
-          title: 'Version restored',
-          description: `Document reverted to version ${version.version}`,
-        });
+        // Update local state
+        setDocuments(prevDocs => 
+          prevDocs.map(doc => doc.id === documentId ? { ...doc, tags: updatedTags } : doc)
+        );
+        
+        // Record activity
+        logDocumentActivity(documentId, 'update', `Removed tag "${tag}"`);
+      } catch (error) {
+        console.error('Error updating document tags:', error);
       }
     }
   };
@@ -152,7 +190,7 @@ const Documents = () => {
     logDocumentActivity(documentId, 'view', 'Viewed the document');
   };
 
-  const handleUploadDocument = (
+  const handleUploadDocument = async (
     file: File, 
     category: string, 
     metadata?: Record<string, string>, 
@@ -161,95 +199,133 @@ const Documents = () => {
     existingDocumentId?: string, 
     versionNotes?: string
   ) => {
-    // Handle new version of existing document
-    if (isNewVersion && existingDocumentId) {
-      const existingDocument = DOCUMENTS.find(doc => doc.id === existingDocumentId);
-      if (existingDocument) {
-        // Determine next version number
-        const nextVersion = (existingDocument.versionHistory?.length || 0) + 1;
+    if (!user) return;
+    
+    try {
+      // Generate a unique file name
+      const fileName = `${Date.now()}_${file.name}`;
+      
+      // In a production app, you would upload to Storage
+      // For this example, we'll use a data URL
+      const reader = new FileReader();
+      
+      reader.onload = async (event) => {
+        const fileUrl = event.target?.result as string;
         
-        // Create new version
-        const newVersion: DocumentVersion = {
-          id: uuidv4(),
-          documentId: existingDocument.id,
-          version: nextVersion,
-          url: URL.createObjectURL(file),
-          uploadedBy: user.id,
-          uploadedAt: new Date(),
-          changes: versionNotes || `Version ${nextVersion}`,
-          size: file.size
+        // Handle new version of existing document
+        if (isNewVersion && existingDocumentId) {
+          const existingDocument = documents.find(doc => doc.id === existingDocumentId);
+          if (existingDocument) {
+            // Update the document with new version info
+            const { error } = await supabase
+              .from('documents')
+              .update({
+                url: fileUrl,
+                size: file.size,
+                version: (existingDocument.version || 1) + 1,
+                uploaded_at: new Date().toISOString()
+              })
+              .eq('id', existingDocumentId);
+              
+            if (error) throw error;
+            
+            // Update local state
+            setDocuments(prevDocs => 
+              prevDocs.map(doc => {
+                if (doc.id === existingDocumentId) {
+                  return {
+                    ...doc,
+                    url: fileUrl,
+                    size: file.size,
+                    uploadedAt: new Date(),
+                    version: (doc.version || 1) + 1
+                  };
+                }
+                return doc;
+              })
+            );
+            
+            // Record activity
+            logDocumentActivity(
+              existingDocumentId, 
+              'version', 
+              `Uploaded version ${(existingDocument.version || 1) + 1}`
+            );
+            
+            toast({
+              title: 'New version uploaded',
+              description: `Version ${(existingDocument.version || 1) + 1} of "${existingDocument.name}" has been uploaded.`,
+            });
+            
+            return;
+          }
+        }
+        
+        // Handle new document
+        const { data, error } = await supabase
+          .from('documents')
+          .insert({
+            name: file.name,
+            url: fileUrl,
+            type: file.type,
+            size: file.size,
+            uploaded_by: user.id,
+            category,
+            visible_to: [user.id],
+            version: 1,
+            tags,
+            metadata
+          })
+          .select()
+          .single();
+          
+        if (error) throw error;
+        
+        // Add to local state
+        const newDocument: Document = {
+          id: data.id,
+          name: data.name,
+          url: data.url,
+          type: data.type,
+          size: data.size,
+          uploadedBy: data.uploaded_by,
+          uploadedAt: new Date(data.uploaded_at),
+          category: data.category,
+          visibleTo: data.visible_to,
+          reviewed: false,
+          version: 1,
+          tags: data.tags || [],
+          metadata: data.metadata || {},
+          comments: [],
+          annotations: []
         };
         
-        // Add version to history
-        if (!existingDocument.versionHistory) {
-          existingDocument.versionHistory = [];
-        }
-        existingDocument.versionHistory.push(newVersion);
-        
-        // Update document properties
-        existingDocument.url = newVersion.url;
-        existingDocument.size = file.size;
-        existingDocument.uploadedAt = new Date();
-        existingDocument.version = nextVersion;
+        setDocuments(prev => [newDocument, ...prev]);
         
         // Record activity
-        logDocumentActivity(existingDocument.id, 'version', `Uploaded version ${nextVersion}`);
+        logDocumentActivity(data.id, 'upload', 'Uploaded new document');
         
         toast({
-          title: 'New version uploaded',
-          description: `Version ${nextVersion} of "${existingDocument.name}" has been uploaded.`,
+          title: 'Document uploaded',
+          description: `${file.name} has been uploaded successfully.`,
         });
-        
-        return;
-      }
+      };
+      
+      reader.readAsDataURL(file);
+    } catch (error: any) {
+      console.error('Error uploading document:', error);
+      toast({
+        title: 'Upload failed',
+        description: error.message || 'An error occurred while uploading the document',
+        variant: 'destructive'
+      });
     }
-    
-    // Handle new document
-    const newDocument = {
-      id: uuidv4(),
-      name: file.name,
-      url: URL.createObjectURL(file),
-      type: file.type,
-      size: file.size,
-      uploadedBy: user.id,
-      uploadedAt: new Date(),
-      category,
-      visibleTo: [user.id],
-      reviewed: false,
-      version: 1,
-      versionHistory: [
-        {
-          id: uuidv4(),
-          documentId: '', // Will be updated after creating the document
-          version: 1,
-          url: URL.createObjectURL(file),
-          uploadedBy: user.id,
-          uploadedAt: new Date(),
-          changes: 'Initial version',
-          size: file.size
-        }
-      ],
-      tags,
-      metadata
-    };
-    
-    // Update document ID in version history
-    newDocument.versionHistory[0].documentId = newDocument.id;
-    
-    // Add to documents
-    DOCUMENTS.push(newDocument);
-    
-    // Record activity
-    logDocumentActivity(newDocument.id, 'upload', 'Uploaded new document');
-    
-    toast({
-      title: 'Document uploaded',
-      description: `${file.name} has been uploaded successfully.`,
-    });
   };
   
   const logDocumentActivity = (documentId: string, activity: 'upload' | 'download' | 'view' | 'update' | 'delete' | 'comment' | 'annotate' | 'version', details?: string) => {
-    const document = DOCUMENTS.find(doc => doc.id === documentId);
+    if (!user) return;
+    
+    const document = documents.find(doc => doc.id === documentId);
     if (!document) return;
     
     // In a real app, we would persist this to a database
@@ -279,20 +355,20 @@ const Documents = () => {
       </div>
       
       <DocumentsList 
-        documents={userDocuments} 
+        documents={documents} 
         onMarkAsReviewed={handleMarkAsReviewed}
         onAddComment={handleAddComment}
         onAddAnnotation={handleAddAnnotation}
         onAddTag={handleAddTag}
         onRemoveTag={handleRemoveTag}
-        onUploadClick={() => setShowUploadModal(true)}
+        onUploadClick={() => {}} // DocumentUpload component handles this now
         onDownload={handleDownloadDocument}
         onView={handleViewDocument}
       />
       
       <DocumentUpload 
         onUpload={handleUploadDocument}
-        existingDocuments={userDocuments}
+        existingDocuments={documents}
       />
     </div>
   );
