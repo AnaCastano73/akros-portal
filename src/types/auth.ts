@@ -9,6 +9,14 @@ export interface User {
   avatar?: string;
 }
 
+export interface UserProfile {
+  id: string;
+  email: string;
+  name: string | null;
+  avatar: string | null;
+  role: UserRole;
+}
+
 export interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;

@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -49,6 +50,9 @@ export const SignupForm = ({ onSwitchTab }: SignupFormProps) => {
     
     setIsSubmitting(true);
     try {
+      // Prepare the name to be stored in user meta data for profiles
+      const fullName = `${firstName} ${lastName}`.trim();
+      
       const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -56,6 +60,7 @@ export const SignupForm = ({ onSwitchTab }: SignupFormProps) => {
           data: {
             first_name: firstName,
             last_name: lastName,
+            name: fullName,
             company: company || null,
           }
         }

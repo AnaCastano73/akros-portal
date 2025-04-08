@@ -12,21 +12,83 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Function to fetch user profile and role from the database
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      // Get user profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (profileError) throw profileError;
+
+      // Get user role using the get_primary_role function
+      const { data: roleData, error: roleError } = await supabase
+        .rpc('get_primary_role', { _user_id: userId });
+
+      if (roleError) throw roleError;
+
+      return {
+        profile,
+        role: roleData as UserRole
+      };
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      return null;
+    }
+  };
+
+  // Set up user data from session
+  const setupUser = async (currentSession: Session | null) => {
+    if (!currentSession?.user) {
+      setUser(null);
+      return;
+    }
+
+    const { id, email } = currentSession.user;
+    
+    try {
+      // Create temporary user object with minimal data
+      const tempUser: User = {
+        id,
+        email: email || "",
+        name: email?.split('@')[0] || "User",
+        role: 'client' // Default role until we fetch from DB
+      };
+      
+      setUser(tempUser);
+      
+      // Fetch complete profile and role from database (this runs asynchronously)
+      const userData = await fetchUserProfile(id);
+      
+      if (userData) {
+        // Update with the database information
+        setUser({
+          id,
+          email: email || "",
+          name: userData.profile.name || email?.split('@')[0] || "User",
+          role: userData.role,
+          avatar: userData.profile.avatar
+        });
+      }
+    } catch (error) {
+      console.error('Error setting up user:', error);
+    }
+  };
+
   useEffect(() => {
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         setSession(currentSession);
+        
+        // Use setTimeout to avoid Supabase auth deadlock
         if (currentSession?.user) {
-          const { id, email } = currentSession.user;
-          // Create a user object from the session
-          const userData: User = {
-            id,
-            email: email || "",
-            name: email?.split('@')[0] || "User",
-            role: determineUserRole(currentSession.user.email || ""),
-          };
-          setUser(userData);
+          setTimeout(() => {
+            setupUser(currentSession);
+          }, 0);
         } else {
           setUser(null);
         }
@@ -36,39 +98,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Then check for existing session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       setSession(currentSession);
-      if (currentSession?.user) {
-        const { id, email } = currentSession.user;
-        // Create a user object from the session
-        const userData: User = {
-          id,
-          email: email || "",
-          name: email?.split('@')[0] || "User",
-          role: determineUserRole(currentSession.user.email || ""),
-        };
-        setUser(userData);
-      }
-      setIsLoading(false);
+      
+      // Use setTimeout here too for consistency
+      setTimeout(() => {
+        setupUser(currentSession);
+        setIsLoading(false);
+      }, 0);
     });
 
     return () => {
       subscription.unsubscribe();
     };
   }, []);
-
-  // Helper function to determine user role based on email domain
-  // In a production app, you would fetch this from a database
-  const determineUserRole = (email: string): UserRole => {
-    // For demonstration - in production this would come from your database
-    if (email.endsWith('admin.akrosadvisory.com')) {
-      return 'admin';
-    } else if (email.endsWith('expert.akrosadvisory.com')) {
-      return 'expert';
-    } else if (email.endsWith('employee.akrosadvisory.com')) {
-      return 'employee';
-    } else {
-      return 'client';
-    }
-  };
 
   const login = async (email: string, password: string): Promise<void> => {
     setIsLoading(true);

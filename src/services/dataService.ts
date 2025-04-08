@@ -1,8 +1,9 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { supabaseTyped } from '@/integrations/supabase/types-extension';
 import { Document } from '@/types/document';
 import { Course, Module, Lesson, CourseProgress } from '@/types/course';
-import { User, UserRole } from '@/types/auth';
+import { User, UserRole, UserProfile } from '@/types/auth';
 import { Json } from '@/integrations/supabase/types';
 
 // Document functions
@@ -179,34 +180,139 @@ export const getCourseProgressForUser = async (userId: string): Promise<CoursePr
 
 // User functions
 export const getAllUsers = async (): Promise<User[]> => {
-  // This requires admin privileges, which is handled by Supabase RLS
-  const { data, error } = await supabase.auth.admin.listUsers();
-  
-  if (error) {
+  try {
+    // Get all profiles with their roles
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('*');
+      
+    if (profilesError) throw profilesError;
+    
+    // For each profile, get their primary role
+    const users = await Promise.all(profiles.map(async (profile) => {
+      const { data: roleData, error: roleError } = await supabase
+        .rpc('get_primary_role', { _user_id: profile.id });
+        
+      if (roleError) {
+        console.error('Error fetching role for user:', profile.id, roleError);
+        return null;
+      }
+      
+      return {
+        id: profile.id,
+        email: profile.email,
+        name: profile.name || profile.email.split('@')[0] || 'Unknown',
+        role: roleData as UserRole,
+        avatar: profile.avatar || '/placeholder.svg'
+      };
+    }));
+    
+    // Filter out any null values (from errors)
+    return users.filter(Boolean) as User[];
+  } catch (error) {
     console.error('Error fetching users:', error);
     return [];
   }
-  
-  // Map to our User type
-  return (data?.users || []).map(u => ({
-    id: u.id,
-    email: u.email || '',
-    name: `${u.user_metadata?.first_name || ''} ${u.user_metadata?.last_name || ''}`.trim() || u.email?.split('@')[0] || 'Unknown',
-    role: determineUserRole(u.email || '') as UserRole,
-    avatar: u.user_metadata?.avatar_url || '/placeholder.svg'
-  }));
 };
 
-// Helper function to determine user role based on email domain
-// In a real app, you would fetch this from a database
-const determineUserRole = (email: string): UserRole => {
-  if (email.endsWith('admin.akrosadvisory.com')) {
-    return 'admin';
-  } else if (email.endsWith('expert.akrosadvisory.com')) {
-    return 'expert';
-  } else if (email.endsWith('employee.akrosadvisory.com')) {
-    return 'employee';
-  } else {
-    return 'client';
+// Role functions
+export const getUserRoles = async (userId: string): Promise<UserRole[]> => {
+  if (!userId) return [];
+  
+  try {
+    const { data, error } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId);
+      
+    if (error) throw error;
+    
+    return data.map(item => item.role as UserRole);
+  } catch (error) {
+    console.error('Error fetching user roles:', error);
+    return [];
+  }
+};
+
+export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
+  if (!userId) return null;
+  
+  try {
+    // Get user profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+      
+    if (profileError) throw profileError;
+    
+    // Get primary role
+    const { data: roleData, error: roleError } = await supabase
+      .rpc('get_primary_role', { _user_id: userId });
+      
+    if (roleError) throw roleError;
+    
+    return {
+      id: profile.id,
+      email: profile.email,
+      name: profile.name,
+      avatar: profile.avatar,
+      role: roleData as UserRole
+    };
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    return null;
+  }
+};
+
+// Admin role functions
+export const assignRoleToUser = async (userId: string, role: UserRole): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('user_roles')
+      .insert({ user_id: userId, role });
+      
+    if (error) throw error;
+    
+    return true;
+  } catch (error) {
+    console.error('Error assigning role to user:', error);
+    return false;
+  }
+};
+
+export const removeRoleFromUser = async (userId: string, role: UserRole): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('user_roles')
+      .delete()
+      .match({ user_id: userId, role });
+      
+    if (error) throw error;
+    
+    return true;
+  } catch (error) {
+    console.error('Error removing role from user:', error);
+    return false;
+  }
+};
+
+export const updateUserProfile = async (
+  userId: string, 
+  profileData: {name?: string; avatar?: string}
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update(profileData)
+      .eq('id', userId);
+      
+    if (error) throw error;
+    
+    return true;
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    return false;
   }
 };

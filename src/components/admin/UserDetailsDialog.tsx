@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { 
   Dialog, DialogContent, DialogDescription, 
@@ -13,13 +12,13 @@ import { DocumentCard } from '@/components/documents/DocumentCard';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
-import { FilePlus, Users } from 'lucide-react';
+import { FilePlus, Users, User } from 'lucide-react';
 import { v4 as uuidv4 } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { supabaseTyped } from '@/integrations/supabase/types-extension';
 import { getDocumentsForUser } from '@/services/dataService';
+import { UserRoleManager } from '@/components/admin/UserRoleManager';
 
-// Standard document categories
 const DOCUMENT_CATEGORIES = [
   "Session Homework",
   "Client Materials",
@@ -41,7 +40,6 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
   const [userDocuments, setUserDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
-  // Fetch documents when dialog opens and user changes
   const fetchUserDocuments = async () => {
     if (!user) return;
     
@@ -61,7 +59,6 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
     }
   };
   
-  // Fetch documents when the dialog opens or user changes
   if (isOpen && user && !isLoading && userDocuments.length === 0) {
     fetchUserDocuments();
   }
@@ -78,31 +75,27 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
     
     setIsLoading(true);
     try {
-      // 1. Create a unique filename
       const fileName = `${Date.now()}_${documentFile.name}`;
       
-      // 2. In a real app, you would upload to a storage bucket
       const reader = new FileReader();
       
       reader.onload = async (event) => {
         const fileUrl = event.target?.result as string;
         
-        // 3. Create a new document record
         const { data, error } = await supabaseTyped.from('documents').insert({
           name: documentName || documentFile.name,
-          url: fileUrl, // In real app, this would be storage URL
+          url: fileUrl,
           type: documentFile.type,
           size: documentFile.size,
-          uploaded_by: 'admin', // Current admin user ID would be used here in a real app
+          uploaded_by: 'admin',
           category: documentCategory,
-          visible_to: [user.id], // Only visible to this specific user
+          visible_to: [user.id],
         }).select().single();
         
         if (error) {
           throw error;
         }
         
-        // 4. Add the document to the local state
         const newDocument: Document = {
           id: data.id,
           name: data.name,
@@ -128,7 +121,6 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
           description: `Document has been uploaded and shared with ${user.name}`
         });
         
-        // Reset form
         setDocumentFile(null);
         setDocumentName('');
       };
@@ -155,7 +147,6 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
         
       if (error) throw error;
       
-      // Update local state
       setUserDocuments(prevDocs => 
         prevDocs.map(doc => doc.id === documentId ? { ...doc, reviewed } : doc)
       );
@@ -170,21 +161,18 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
   };
   
   const handleAddComment = async (documentId: string, comment: string) => {
-    // In a real app, you would store comments in a separate table
-    // For simplicity, we'll just update the document with the new comment
     try {
       const document = userDocuments.find(doc => doc.id === documentId);
       if (!document) return;
       
       const newComment = {
         id: uuidv4(),
-        userId: 'admin', // Current admin user ID would be used here in a real app
-        userName: 'Admin', // Current admin name would be used here in a real app
+        userId: 'admin',
+        userName: 'Admin',
         content: comment,
         createdAt: new Date()
       };
       
-      // Update local state optimistically
       setUserDocuments(prevDocs => 
         prevDocs.map(doc => {
           if (doc.id === documentId) {
@@ -198,6 +186,12 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
       );
     } catch (error) {
       console.error('Error adding comment:', error);
+    }
+  };
+  
+  const handleRoleChange = (newRole: UserRole) => {
+    if (user) {
+      setUser(prevUser => prevUser ? { ...prevUser, role: newRole } : null);
     }
   };
   
@@ -223,7 +217,11 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
         </DialogHeader>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="profile" className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Profile
+            </TabsTrigger>
             <TabsTrigger value="documents" className="flex items-center gap-2">
               <FilePlus className="h-4 w-4" />
               Documents
@@ -233,6 +231,17 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
               Enrolled Courses
             </TabsTrigger>
           </TabsList>
+          
+          <TabsContent value="profile" className="space-y-4 mt-4">
+            <div className="border rounded-md p-4">
+              <h3 className="text-lg font-medium mb-4">User Roles</h3>
+              <UserRoleManager 
+                userId={user.id} 
+                currentRole={user.role}
+                onRoleChange={handleRoleChange}
+              />
+            </div>
+          </TabsContent>
           
           <TabsContent value="documents" className="space-y-4 mt-4">
             <div className="border rounded-md p-4 bg-muted/40">
