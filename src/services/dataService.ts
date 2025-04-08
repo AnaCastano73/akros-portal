@@ -1,9 +1,9 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { supabaseTyped } from '@/integrations/supabase/types-extension';
 import { Document } from '@/types/document';
 import { Course, Module, Lesson, CourseProgress } from '@/types/course';
 import { User, UserRole } from '@/types/auth';
+import { Json } from '@/integrations/supabase/types';
 
 // Document functions
 export const getDocumentsForUser = async (userId: string): Promise<Document[]> => {
@@ -20,23 +20,41 @@ export const getDocumentsForUser = async (userId: string): Promise<Document[]> =
   }
   
   // Transform data to match Document type
-  return data.map((doc): Document => ({
-    id: doc.id,
-    name: doc.name,
-    url: doc.url,
-    type: doc.type,
-    size: doc.size,
-    uploadedBy: doc.uploaded_by,
-    uploadedAt: new Date(doc.uploaded_at),
-    category: doc.category,
-    visibleTo: doc.visible_to,
-    reviewed: doc.reviewed || false,
-    version: doc.version || 1,
-    tags: doc.tags || [],
-    metadata: doc.metadata || {},
-    annotations: [],
-    comments: []
-  }));
+  return data.map((doc): Document => {
+    let metadata: Record<string, any> | null = null;
+    
+    // Handle different types of metadata
+    if (doc.metadata) {
+      if (typeof doc.metadata === 'object') {
+        metadata = doc.metadata as Record<string, any>;
+      } else {
+        // Convert other types to a proper format or set to null
+        try {
+          metadata = { value: doc.metadata };
+        } catch (e) {
+          metadata = null;
+        }
+      }
+    }
+    
+    return {
+      id: doc.id,
+      name: doc.name,
+      url: doc.url,
+      type: doc.type,
+      size: doc.size,
+      uploadedBy: doc.uploaded_by,
+      uploadedAt: new Date(doc.uploaded_at),
+      category: doc.category,
+      visibleTo: doc.visible_to,
+      reviewed: doc.reviewed || false,
+      version: doc.version || 1,
+      tags: doc.tags || [],
+      metadata,
+      annotations: [],
+      comments: []
+    };
+  });
 };
 
 // Course functions

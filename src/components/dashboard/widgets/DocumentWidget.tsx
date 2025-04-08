@@ -6,6 +6,7 @@ import { DocumentCard } from '@/components/documents/DocumentCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { supabaseTyped } from '@/integrations/supabase/types-extension';
 import { Document } from '@/types/document';
 import { getDocumentsForUser } from '@/services/dataService';

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { DocumentsList } from '@/components/documents/DocumentsList';
 import { DocumentUpload } from '@/components/documents/DocumentUpload';
@@ -6,6 +7,7 @@ import { getDocumentsForUser } from '@/services/dataService';
 import { useToast } from '@/components/ui/use-toast';
 import { Document, DocumentAnnotation, DocumentActivity } from '@/types/document';
 import { supabase } from '@/integrations/supabase/client';
+import { supabaseTyped } from '@/integrations/supabase/types-extension';
 import { v4 as uuidv4 } from '@/lib/utils';
 
 const DOCUMENT_CATEGORIES = [

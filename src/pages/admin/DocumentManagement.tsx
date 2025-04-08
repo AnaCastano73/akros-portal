@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,11 +10,11 @@ import { useNavigate } from 'react-router-dom';
 import { DocumentUpload } from '@/components/documents/DocumentUpload';
 import { useToast } from '@/components/ui/use-toast';
 import { formatFileSize } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client'; // Fixed import
+import { supabase } from '@/integrations/supabase/client';
 import { supabaseTyped } from '@/integrations/supabase/types-extension';
 import { Document } from '@/types/document';
+import { Json } from '@/integrations/supabase/types';
 
-// Standard document categories
 const DOCUMENT_CATEGORIES = [
   "Session Homework",
   "Client Materials",
@@ -52,24 +51,39 @@ const DocumentManagement = () => {
         
       if (error) throw error;
       
-      // Transform to match Document type
-      const transformedDocs: Document[] = (data || []).map(doc => ({
-        id: doc.id,
-        name: doc.name,
-        url: doc.url,
-        type: doc.type,
-        size: doc.size,
-        uploadedBy: doc.uploaded_by,
-        uploadedAt: new Date(doc.uploaded_at),
-        category: doc.category,
-        visibleTo: doc.visible_to,
-        reviewed: doc.reviewed || false,
-        version: doc.version || 1,
-        tags: doc.tags || [],
-        metadata: doc.metadata || {},
-        comments: [],
-        annotations: []
-      }));
+      const transformedDocs: Document[] = (data || []).map(doc => {
+        let metadata: Record<string, any> | null = null;
+        
+        if (doc.metadata) {
+          if (typeof doc.metadata === 'object') {
+            metadata = doc.metadata as Record<string, any>;
+          } else {
+            try {
+              metadata = { value: doc.metadata };
+            } catch (e) {
+              metadata = null;
+            }
+          }
+        }
+        
+        return {
+          id: doc.id,
+          name: doc.name,
+          url: doc.url,
+          type: doc.type,
+          size: doc.size,
+          uploadedBy: doc.uploaded_by,
+          uploadedAt: new Date(doc.uploaded_at),
+          category: doc.category,
+          visibleTo: doc.visible_to,
+          reviewed: doc.reviewed || false,
+          version: doc.version || 1,
+          tags: doc.tags || [],
+          metadata,
+          comments: [],
+          annotations: []
+        };
+      });
       
       setDocuments(transformedDocs);
     } catch (error: any) {
@@ -100,7 +114,6 @@ const DocumentManagement = () => {
     }
   };
 
-  // Check if user is admin
   if (user?.role !== 'admin') {
     navigate('/dashboard');
     return null;
@@ -118,7 +131,6 @@ const DocumentManagement = () => {
     );
   }
 
-  // Filter documents based on search term
   const filteredDocuments = documents.filter(doc => 
     doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     doc.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -139,17 +151,13 @@ const DocumentManagement = () => {
 
   const handleUploadDocument = async (file: File, category: string) => {
     try {
-      // Generate a unique file name
       const fileName = `${Date.now()}_${file.name}`;
       
-      // In a production app, you would upload to Storage
-      // For this example, we'll use a data URL
       const reader = new FileReader();
       
       reader.onload = async (event) => {
         const fileUrl = event.target?.result as string;
         
-        // Create document record visible to all users
         const { data, error: usersError } = await supabase.auth.admin.listUsers();
         
         if (usersError) throw usersError;
@@ -172,7 +180,6 @@ const DocumentManagement = () => {
           
         if (error) throw error;
         
-        // Add to local state
         const newDocument: Document = {
           id: docData.id,
           name: docData.name,

@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import { FilePlus, Users } from 'lucide-react';
 import { v4 as uuidv4 } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 import { supabaseTyped } from '@/integrations/supabase/types-extension';
 import { getDocumentsForUser } from '@/services/dataService';
 
