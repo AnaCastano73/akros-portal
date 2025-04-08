@@ -22,13 +22,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', userId)
         .single();
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        return null;
+      }
 
       // Get user role using the get_primary_role function
       const { data: roleData, error: roleError } = await supabase
         .rpc('get_primary_role', { _user_id: userId });
 
-      if (roleError) throw roleError;
+      if (roleError) {
+        console.error('Error fetching role:', roleError);
+        // Default to client role if there's an error getting role
+        return {
+          profile,
+          role: 'client' as UserRole
+        };
+      }
 
       return {
         profile,
@@ -44,6 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const setupUser = async (currentSession: Session | null) => {
     if (!currentSession?.user) {
       setUser(null);
+      setIsLoading(false);
       return;
     }
 
@@ -73,8 +84,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           avatar: userData.profile.avatar
         });
       }
+      
+      setIsLoading(false);
     } catch (error) {
       console.error('Error setting up user:', error);
+      setIsLoading(false);
     }
   };
 
@@ -82,6 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
+        console.log('Auth state changed:', event);
         setSession(currentSession);
         
         // Use setTimeout to avoid Supabase auth deadlock
@@ -91,18 +106,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }, 0);
         } else {
           setUser(null);
+          setIsLoading(false);
         }
       }
     );
 
     // Then check for existing session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      console.log('Initial session check:', currentSession ? 'Session found' : 'No session');
       setSession(currentSession);
       
       // Use setTimeout here too for consistency
       setTimeout(() => {
         setupUser(currentSession);
-        setIsLoading(false);
       }, 0);
     });
 

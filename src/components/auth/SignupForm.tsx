@@ -53,7 +53,7 @@ export const SignupForm = ({ onSwitchTab }: SignupFormProps) => {
       // Prepare the name to be stored in user meta data for profiles
       const fullName = `${firstName} ${lastName}`.trim();
       
-      const { error: signUpError } = await supabase.auth.signUp({
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -68,19 +68,51 @@ export const SignupForm = ({ onSwitchTab }: SignupFormProps) => {
 
       if (signUpError) throw signUpError;
       
-      toast({
-        title: "Registration successful",
-        description: "Your account has been created. Please check your email for verification.",
-      });
-      
-      navigate('/login');
+      // Check if email confirmation is required
+      if (data?.user && !data.user.confirmed_at) {
+        toast({
+          title: "Registration successful",
+          description: "Your account has been created. Please check your email for verification.",
+        });
+        
+        // Switch to login tab after successful signup
+        if (onSwitchTab) {
+          onSwitchTab();
+        }
+      } else {
+        // If email confirmation is not required, auto-login the user
+        try {
+          await login(email, password);
+          toast({
+            title: "Registration successful",
+            description: "Your account has been created and you're now logged in.",
+          });
+          navigate('/dashboard');
+        } catch (loginError) {
+          console.error('Auto-login failed:', loginError);
+          // If auto-login fails, redirect to login page
+          if (onSwitchTab) {
+            onSwitchTab();
+          }
+        }
+      }
     } catch (error: any) {
       console.error('Signup failed:', error);
-      toast({
-        title: "Registration failed",
-        description: error.message || "An error occurred during registration.",
-        variant: "destructive",
-      });
+      
+      // Handle specific error cases
+      if (error.message.includes('already registered')) {
+        toast({
+          title: "Email already registered",
+          description: "This email is already in use. Please use a different email or try logging in.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Registration failed",
+          description: error.message || "An error occurred during registration.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
