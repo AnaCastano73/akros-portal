@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Course, CourseProgress } from '@/types/course';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ExternalLink } from 'lucide-react';
 
 interface CoursesListProps {
   courses: Course[];
@@ -58,37 +59,52 @@ export function CoursesList({ courses, progress = [] }: CoursesListProps) {
     );
   };
 
+  const openThinkificCourses = () => {
+    window.open('https://learn.thinkific.com/enrollments', '_blank');
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row gap-4">
-        <Input
-          placeholder="Search courses..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="md:max-w-sm"
-        />
-        <div className="flex flex-wrap gap-2">
-          {allTags.map(tag => (
-            <Badge
-              key={tag}
-              variant={selectedTags.includes(tag) ? "default" : "outline"}
-              className={selectedTags.includes(tag) ? "bg-brand-500 hover:bg-brand-600" : ""}
-              onClick={() => toggleTag(tag)}
-            >
-              {tag}
-            </Badge>
-          ))}
-          {selectedTags.length > 0 && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => setSelectedTags([])}
-              className="text-sm"
-            >
-              Clear filters
-            </Button>
-          )}
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="flex flex-col md:flex-row gap-4 w-full">
+          <Input
+            placeholder="Search courses..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="md:max-w-sm"
+          />
+          <div className="flex flex-wrap gap-2">
+            {allTags.map(tag => (
+              <Badge
+                key={tag}
+                variant={selectedTags.includes(tag) ? "default" : "outline"}
+                className={selectedTags.includes(tag) ? "bg-brand-500 hover:bg-brand-600" : ""}
+                onClick={() => toggleTag(tag)}
+              >
+                {tag}
+              </Badge>
+            ))}
+            {selectedTags.length > 0 && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setSelectedTags([])}
+                className="text-sm"
+              >
+                Clear filters
+              </Button>
+            )}
+          </div>
         </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={openThinkificCourses}
+          className="whitespace-nowrap"
+        >
+          <ExternalLink className="mr-2 h-4 w-4" />
+          View on Thinkific
+        </Button>
       </div>
       
       {filteredCourses.length === 0 ? (

@@ -104,7 +104,7 @@ export function AppSidebar() {
       icon: Users,
     },
     {
-      title: 'Course Management',
+      title: 'Course Enrollments',
       href: '/admin/courses',
       icon: BookOpen,
     },

@@ -5,109 +5,82 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Search, Edit, Plus, Trash, Users } from 'lucide-react';
+import { Search, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { CreateCourseDialog } from '@/components/admin/CreateCourseDialog';
 import { toast } from "@/hooks/use-toast";
 import { supabaseTyped } from '@/integrations/supabase/types-extension';
-import { Course } from '@/types/course';
+import { getAllUsers } from '@/services/dataService';
+import { User } from '@/types/auth';
 
 const CourseManagement = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [enrollments, setEnrollments] = useState<{
+    userId: string;
+    userName: string;
+    courseId: string;
+    courseName: string;
+    enrolledAt: string;
+    lastAccessed: string;
+    completed: boolean;
+  }[]>([]);
 
   useEffect(() => {
     document.title = 'Course Management - Healthwise Advisory Hub';
     
     if (user?.role === 'admin') {
-      fetchCourses();
+      fetchUsersAndEnrollments();
     } else {
       setIsLoading(false);
     }
   }, [user]);
 
-  const fetchCourses = async () => {
+  const fetchUsersAndEnrollments = async () => {
     setIsLoading(true);
     try {
-      // Fetch courses
-      const { data, error } = await supabaseTyped
-        .from('courses')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Fetch all users
+      const allUsers = await getAllUsers();
+      setUsers(allUsers);
       
-      if (error) throw error;
+      // Fetch course enrollments from Supabase
+      const { data: enrollmentData, error: enrollmentError } = await supabaseTyped
+        .from('course_enrollments')
+        .select(`
+          id,
+          enrolled_at,
+          last_accessed,
+          completed,
+          user_id,
+          course_id,
+          courses(title)
+        `);
       
-      // Transform data to match Course type
-      const transformedCourses: Course[] = await Promise.all((data || []).map(async (course) => {
-        // Get modules for this course
-        const { data: modules, error: modulesError } = await supabaseTyped
-          .from('course_modules')
-          .select('*')
-          .eq('course_id', course.id)
-          .order('order_index', { ascending: true });
-          
-        if (modulesError) {
-          console.error('Error fetching modules:', modulesError);
-          return {
-            id: course.id,
-            title: course.title,
-            description: course.description,
-            thumbnailUrl: course.image_url || '/placeholder.svg',
-            modules: [],
-            tags: course.tags || [],
-            enrolledUsers: [], // Would need another query
-            createdAt: new Date(course.created_at)
-          };
-        }
-        
-        // Get lesson counts for each module
-        const modulePromises = (modules || []).map(async (mod) => {
-          const { data: lessons } = await supabaseTyped
-            .from('course_lessons')
-            .select('*')
-            .eq('module_id', mod.id);
-            
-          return {
-            id: mod.id,
-            title: mod.title,
-            description: mod.description || '',
-            order: mod.order_index,
-            lessons: (lessons || []).map(lesson => ({
-              id: lesson.id,
-              title: lesson.title,
-              content: lesson.content,
-              description: '', // Add empty description
-              order: lesson.order_index
-            }))
-          };
-        });
-        
-        const transformedModules = await Promise.all(modulePromises);
+      if (enrollmentError) throw enrollmentError;
+      
+      // Transform enrollment data
+      const transformedEnrollments = enrollmentData.map(enrollment => {
+        const enrolledUser = allUsers.find(u => u.id === enrollment.user_id);
         
         return {
-          id: course.id,
-          title: course.title,
-          description: course.description,
-          thumbnailUrl: course.image_url || '/placeholder.svg',
-          modules: transformedModules,
-          tags: course.tags || [],
-          enrolledUsers: [], // Would need another query
-          createdAt: new Date(course.created_at)
+          userId: enrollment.user_id,
+          userName: enrolledUser?.name || 'Unknown User',
+          courseId: enrollment.course_id,
+          courseName: enrollment.courses?.title || 'Unknown Course',
+          enrolledAt: new Date(enrollment.enrolled_at).toLocaleDateString(),
+          lastAccessed: new Date(enrollment.last_accessed).toLocaleDateString(),
+          completed: enrollment.completed || false
         };
-      }));
+      });
       
-      setCourses(transformedCourses);
+      setEnrollments(transformedEnrollments);
     } catch (error: any) {
-      console.error('Error fetching courses:', error);
+      console.error('Error fetching enrollments:', error);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to load courses',
+        description: error.message || 'Failed to load course enrollments',
         variant: 'destructive',
       });
     } finally {
@@ -121,47 +94,15 @@ const CourseManagement = () => {
     return null;
   }
 
-  // Delete course handler
-  const handleDeleteCourse = async (courseId: string) => {
-    try {
-      const { error } = await supabaseTyped
-        .from('courses')
-        .delete()
-        .eq('id', courseId);
-        
-      if (error) throw error;
-      
-      // Update local state
-      setCourses(courses.filter(course => course.id !== courseId));
-      
-      toast({
-        title: "Course deleted",
-        description: "The course has been deleted successfully",
-      });
-    } catch (error: any) {
-      console.error('Error deleting course:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to delete course',
-        variant: 'destructive',
-      });
-    }
+  const openThinkificDashboard = () => {
+    window.open('https://app.thinkific.com/manage/admin', '_blank');
   };
 
-  // Edit course handler
-  const handleEditCourse = (course: Course) => {
-    setSelectedCourse(course);
-    setIsCreateDialogOpen(true);
-  };
-
-  const handleManageEnrollments = (course: Course) => {
-    // This would open a dialog to manage course enrollments
-    // For now, just show a toast
-    toast({
-      title: "Manage Enrollments",
-      description: `You can manage enrollments for "${course.title}" here.`,
-    });
-  };
+  // Filter enrollments based on search term
+  const filteredEnrollments = enrollments.filter(enrollment => 
+    enrollment.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    enrollment.courseName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   if (isLoading) {
     return (
@@ -175,48 +116,31 @@ const CourseManagement = () => {
     );
   }
 
-  // Filter courses based on search term
-  const filteredCourses = courses.filter(course => 
-    course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    course.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    course.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
-  const handleCreateDialogClose = () => {
-    setIsCreateDialogOpen(false);
-    setSelectedCourse(null);
-    // Refresh courses after dialog closes
-    fetchCourses();
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight font-avenir">Course Management</h1>
           <p className="text-muted-foreground">
-            Create and manage learning content
+            View and manage course enrollments
           </p>
         </div>
-        <Button 
-          className="bg-brand-500 hover:bg-brand-600"
-          onClick={() => {
-            setSelectedCourse(null);
-            setIsCreateDialogOpen(true);
-          }}
+        <button 
+          className="flex items-center gap-2 text-brand-500 hover:text-brand-600"
+          onClick={openThinkificDashboard}
         >
-          <Plus className="mr-2 h-4 w-4" />
-          Create New Course
-        </Button>
+          <ExternalLink className="h-4 w-4" />
+          Open Thinkific Dashboard
+        </button>
       </div>
       
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle>Courses</CardTitle>
+          <CardTitle>Course Enrollments</CardTitle>
           <div className="relative mt-4">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search courses..."
+              placeholder="Search by user or course..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-8"
@@ -227,77 +151,33 @@ const CourseManagement = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Modules</TableHead>
-                <TableHead>Lessons</TableHead>
-                <TableHead>Tags</TableHead>
-                <TableHead>Enrolled Users</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>User</TableHead>
+                <TableHead>Course</TableHead>
+                <TableHead>Enrolled On</TableHead>
+                <TableHead>Last Accessed</TableHead>
+                <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredCourses.map(course => {
-                // Count total lessons
-                const lessonCount = course.modules.reduce(
-                  (total, module) => total + module.lessons.length,
-                  0
-                );
-                
-                return (
-                  <TableRow key={course.id}>
-                    <TableCell>
-                      <div className="font-medium">{course.title}</div>
-                    </TableCell>
-                    <TableCell>{course.modules.length}</TableCell>
-                    <TableCell>{lessonCount}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {course.tags.map(tag => (
-                          <Badge key={tag} variant="outline" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">
-                        {course.enrolledUsers.length} users
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => handleManageEnrollments(course)}
-                          title="Manage Enrollments"
-                        >
-                          <Users className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => handleEditCourse(course)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteCourse(course.id)}
-                        >
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-              {filteredCourses.length === 0 && (
+              {filteredEnrollments.map((enrollment, index) => (
+                <TableRow key={`${enrollment.userId}-${enrollment.courseId}-${index}`}>
+                  <TableCell>
+                    <div className="font-medium">{enrollment.userName}</div>
+                  </TableCell>
+                  <TableCell>{enrollment.courseName}</TableCell>
+                  <TableCell>{enrollment.enrolledAt}</TableCell>
+                  <TableCell>{enrollment.lastAccessed}</TableCell>
+                  <TableCell>
+                    <Badge variant={enrollment.completed ? "success" : "secondary"}>
+                      {enrollment.completed ? "Completed" : "In Progress"}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {filteredEnrollments.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-6">
-                    No courses found. Try adjusting your search.
+                  <TableCell colSpan={5} className="text-center py-6">
+                    No enrollments found. Try adjusting your search.
                   </TableCell>
                 </TableRow>
               )}
@@ -305,12 +185,6 @@ const CourseManagement = () => {
           </Table>
         </CardContent>
       </Card>
-
-      <CreateCourseDialog 
-        isOpen={isCreateDialogOpen} 
-        onOpenChange={handleCreateDialogClose} 
-        editCourse={selectedCourse}
-      />
     </div>
   );
 };
