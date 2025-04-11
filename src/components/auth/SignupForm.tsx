@@ -27,6 +27,33 @@ export const SignupForm = ({ onSwitchTab }: SignupFormProps) => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  // Function to send user data to Zapier through our edge function
+  const sendToZapier = async (userData: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    company?: string;
+  }, token: string) => {
+    try {
+      console.log("Sending user data to Zapier:", userData);
+      
+      const { error } = await supabase.functions.invoke('send-to-zapier', {
+        body: { userData },
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      if (error) {
+        console.error("Error sending data to Zapier:", error);
+      } else {
+        console.log("Data sent to Zapier successfully");
+      }
+    } catch (error) {
+      console.error("Exception sending data to Zapier:", error);
+    }
+  };
+
   // Function to send user data to SharePoint Excel through our edge function
   const updateSharePointExcel = async (userData: {
     firstName: string;
@@ -108,6 +135,17 @@ export const SignupForm = ({ onSwitchTab }: SignupFormProps) => {
       if (signUpError) throw signUpError;
       
       console.log("Signup response:", data);
+      
+      // Get session token for Zapier function authorization
+      if (data?.session?.access_token) {
+        // Send user data to Zapier
+        await sendToZapier({
+          firstName,
+          lastName,
+          email,
+          company: company || undefined
+        }, data.session.access_token);
+      }
       
       // Send user data to SharePoint Excel
       await updateSharePointExcel({
