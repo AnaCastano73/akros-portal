@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from 'react';
 import { DocumentCategoryCard } from '@/components/documents/DocumentCategoryCard';
 import { DocumentCategoryView } from '@/components/documents/DocumentCategoryView';
 import { useAuth } from '@/contexts/AuthContext';
 import { getDocumentsForUser } from '@/services/dataService';
 import { useToast } from '@/hooks/use-toast';
-import { Document, DocumentAnnotation } from '@/types/document';
+import { Document, DocumentAnnotation, DocumentActivity } from '@/types/document';
 import { supabase } from '@/integrations/supabase/client';
 import { supabaseTyped } from '@/integrations/supabase/types-extension';
 import { v4 as uuidv4 } from '@/lib/utils';

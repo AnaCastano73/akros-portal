@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,11 +40,9 @@ const CourseManagement = () => {
   const fetchUsersAndEnrollments = async () => {
     setIsLoading(true);
     try {
-      // Fetch all users
       const allUsers = await getAllUsers();
       setUsers(allUsers);
       
-      // Fetch course enrollments from Supabase
       const { data: enrollmentData, error: enrollmentError } = await supabaseTyped
         .from('course_enrollments')
         .select(`
@@ -60,7 +57,6 @@ const CourseManagement = () => {
       
       if (enrollmentError) throw enrollmentError;
       
-      // Transform enrollment data
       const transformedEnrollments = enrollmentData.map(enrollment => {
         const enrolledUser = allUsers.find(u => u.id === enrollment.user_id);
         
@@ -88,7 +84,6 @@ const CourseManagement = () => {
     }
   };
 
-  // Check if user is admin
   if (user?.role !== 'admin') {
     navigate('/dashboard');
     return null;
@@ -98,7 +93,6 @@ const CourseManagement = () => {
     window.open('https://app.thinkific.com/manage/admin', '_blank');
   };
 
-  // Filter enrollments based on search term
   const filteredEnrollments = enrollments.filter(enrollment => 
     enrollment.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     enrollment.courseName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -168,7 +162,7 @@ const CourseManagement = () => {
                   <TableCell>{enrollment.enrolledAt}</TableCell>
                   <TableCell>{enrollment.lastAccessed}</TableCell>
                   <TableCell>
-                    <Badge variant={enrollment.completed ? "success" : "secondary"}>
+                    <Badge variant={enrollment.completed ? "secondary" : "outline"} className={enrollment.completed ? "bg-green-100 text-green-800 hover:bg-green-200" : ""}>
                       {enrollment.completed ? "Completed" : "In Progress"}
                     </Badge>
                   </TableCell>
