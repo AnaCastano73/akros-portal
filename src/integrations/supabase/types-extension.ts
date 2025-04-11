@@ -183,7 +183,8 @@ interface Database {
 }
 
 // Create the typed Supabase client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Use hardcoded values from client.ts instead of relying on import.meta.env which might not be available during rendering
+const SUPABASE_URL = "https://gxkdlylqmwwlhyyqlwfm.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4a2RseWxxbXd3bGh5eXFsd2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQwNTk5NzIsImV4cCI6MjA1OTYzNTk3Mn0.179J82KbfECLxuFrbjr-7pE8c8Cw3iSglsKTtq2Ox74";
 
-export const supabaseTyped = createClient<Database>(supabaseUrl, supabaseKey);
+export const supabaseTyped = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY);
