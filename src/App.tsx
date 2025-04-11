@@ -20,6 +20,8 @@ import Notifications from "./pages/Notifications";
 import ExpertProfile from "./pages/expert/ExpertProfile";
 import ExpertContributions from "./pages/expert/ExpertContributions";
 import UserManagement from "./pages/admin/UserManagement";
+import CompanyManagement from "./pages/admin/CompanyManagement";
+import CompanyBranding from "./pages/admin/CompanyBranding";
 import CourseManagement from "./pages/admin/CourseManagement";
 import DocumentManagement from "./pages/admin/DocumentManagement";
 import Analytics from "./pages/admin/Analytics";
@@ -55,6 +57,8 @@ const App = () => (
                   
                   {/* Admin Routes */}
                   <Route path="/admin/users" element={<UserManagement />} />
+                  <Route path="/admin/companies" element={<CompanyManagement />} />
+                  <Route path="/admin/company/:companyId/branding" element={<CompanyBranding />} />
                   <Route path="/admin/courses" element={<CourseManagement />} />
                   <Route path="/admin/documents" element={<DocumentManagement />} />
                   <Route path="/admin/analytics" element={<Analytics />} />

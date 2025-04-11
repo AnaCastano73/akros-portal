@@ -2,7 +2,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { Book, FileText, Home, Settings, Users, User, Edit, BookOpen, FileSignature, Building, MessageCircle, Bell, BarChart2, LogOut } from 'lucide-react';
+import { Book, FileText, Home, Settings, Users, User, Edit, BookOpen, FileSignature, Building, MessageCircle, Bell, BarChart2, LogOut, Palette } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -102,6 +102,11 @@ export function AppSidebar() {
       title: 'User Management',
       href: '/admin/users',
       icon: Users,
+    },
+    {
+      title: 'Company Management',
+      href: '/admin/companies',
+      icon: Building,
     },
     {
       title: 'Course Enrollments',

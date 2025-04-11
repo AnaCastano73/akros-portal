@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { 
   Dialog, DialogContent, DialogDescription, 
@@ -13,12 +12,13 @@ import { DocumentCard } from '@/components/documents/DocumentCard';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
-import { FilePlus, Users, UserIcon } from 'lucide-react';
+import { FilePlus, Users, UserIcon, Building } from 'lucide-react';
 import { v4 as uuidv4 } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { supabaseTyped } from '@/integrations/supabase/types-extension';
 import { getDocumentsForUser } from '@/services/dataService';
 import { UserRoleManager } from '@/components/admin/UserRoleManager';
+import { UserCompanyAssignment } from '@/components/admin/UserCompanyAssignment';
 
 const DOCUMENT_CATEGORIES = [
   "Session Homework",
@@ -41,6 +41,7 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
   const [userDocuments, setUserDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(user);
+  const [userCompanyId, setUserCompanyId] = useState<string | null>(null);
   
   const fetchUserDocuments = async () => {
     if (!user) return;
@@ -61,8 +62,30 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
     }
   };
   
+  const fetchUserCompany = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user.id)
+        .single();
+        
+      if (error) {
+        console.error('Error fetching user company:', error);
+        return;
+      }
+      
+      setUserCompanyId(data.company_id);
+    } catch (error) {
+      console.error('Error fetching user company:', error);
+    }
+  };
+  
   if (isOpen && user && !isLoading && userDocuments.length === 0) {
     fetchUserDocuments();
+    fetchUserCompany();
   }
   
   const handleUploadDocument = async () => {
@@ -196,6 +219,10 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
       setCurrentUser(prevUser => prevUser ? { ...prevUser, role: newRole } : null);
     }
   };
+
+  const handleCompanyChange = (companyId: string | null) => {
+    setUserCompanyId(companyId);
+  };
   
   if (!user) return null;
   
@@ -241,6 +268,15 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
                 userId={user.id} 
                 currentRole={user.role}
                 onRoleChange={handleRoleChange}
+              />
+            </div>
+            
+            <div className="border rounded-md p-4">
+              <h3 className="text-lg font-medium mb-4">Company Assignment</h3>
+              <UserCompanyAssignment
+                userId={user.id}
+                currentCompanyId={userCompanyId}
+                onCompanyChange={handleCompanyChange}
               />
             </div>
           </TabsContent>
