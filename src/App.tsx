@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -9,7 +10,8 @@ import Notifications from '@/pages/Notifications';
 import Chat from '@/pages/Chat';
 import UserManagement from '@/pages/admin/UserManagement';
 import CourseManagement from '@/pages/admin/CourseManagement';
-import CompanyManagement from './pages/admin/CompanyManagement';
+import CompanyManagement from '@/pages/admin/CompanyManagement';
+import Index from '@/pages/Index';
 
 const App = () => {
   return (
@@ -95,8 +97,16 @@ const AppRoutes = () => {
           </AdminRoute>
         }
       />
-      <Route path="/admin/companies" element={<CompanyManagement />} />
-      <Route path="/" element={<Navigate to="/dashboard" />} />
+      <Route
+        path="/admin/companies"
+        element={
+          <AdminRoute>
+            <CompanyManagement />
+          </AdminRoute>
+        }
+      />
+      {/* Root route points to Index component which handles redirects */}
+      <Route path="/" element={<Index />} />
     </Routes>
   );
 };
