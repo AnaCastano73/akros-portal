@@ -53,6 +53,20 @@ export const SignupForm = ({ onSwitchTab }: SignupFormProps) => {
       // Prepare the name to be stored in user meta data for profiles
       const fullName = `${firstName} ${lastName}`.trim();
       
+      // First, check if email already exists to provide better error messages
+      const { data: existingUser, error: checkError } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: false
+        }
+      });
+      
+      if (existingUser?.user) {
+        throw new Error('This email is already registered. Please use a different email or try logging in.');
+      }
+      
+      // Proceed with signup
+      console.log("Attempting to sign up with email:", email);
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -62,11 +76,14 @@ export const SignupForm = ({ onSwitchTab }: SignupFormProps) => {
             last_name: lastName,
             name: fullName,
             company: company || null,
-          }
+          },
+          emailRedirectTo: window.location.origin
         }
       });
 
       if (signUpError) throw signUpError;
+      
+      console.log("Signup response:", data);
       
       // Check if email confirmation is required
       if (data?.user && !data.user.confirmed_at) {
