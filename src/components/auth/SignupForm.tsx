@@ -27,6 +27,30 @@ export const SignupForm = ({ onSwitchTab }: SignupFormProps) => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  // Function to send user data to SharePoint Excel through our edge function
+  const updateSharePointExcel = async (userData: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    company?: string;
+  }) => {
+    try {
+      console.log("Sending user data to SharePoint Excel:", userData);
+      
+      const { error } = await supabase.functions.invoke('update-sharepoint-excel', {
+        body: { userData },
+      });
+      
+      if (error) {
+        console.error("Error updating SharePoint Excel:", error);
+      } else {
+        console.log("SharePoint Excel update triggered successfully");
+      }
+    } catch (error) {
+      console.error("Exception updating SharePoint Excel:", error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -84,6 +108,14 @@ export const SignupForm = ({ onSwitchTab }: SignupFormProps) => {
       if (signUpError) throw signUpError;
       
       console.log("Signup response:", data);
+      
+      // Send user data to SharePoint Excel
+      await updateSharePointExcel({
+        firstName,
+        lastName,
+        email,
+        company: company || undefined
+      });
       
       // Check if email confirmation is required
       if (data?.user && !data.user.confirmed_at) {
