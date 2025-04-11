@@ -1,26 +1,42 @@
 import { useState, useEffect } from 'react';
-import { DocumentsList } from '@/components/documents/DocumentsList';
-import { DocumentUpload } from '@/components/documents/DocumentUpload';
+import { DocumentCategoryCard } from '@/components/documents/DocumentCategoryCard';
+import { DocumentCategoryView } from '@/components/documents/DocumentCategoryView';
 import { useAuth } from '@/contexts/AuthContext';
 import { getDocumentsForUser } from '@/services/dataService';
-import { useToast } from '@/components/ui/use-toast';
-import { Document, DocumentAnnotation, DocumentActivity } from '@/types/document';
+import { useToast } from '@/hooks/use-toast';
+import { Document, DocumentAnnotation } from '@/types/document';
 import { supabase } from '@/integrations/supabase/client';
 import { supabaseTyped } from '@/integrations/supabase/types-extension';
 import { v4 as uuidv4 } from '@/lib/utils';
+import { FileText, FileImage, BookOpen, FileCheck } from 'lucide-react';
 
 const DOCUMENT_CATEGORIES = [
   "Session Homework",
-  "Client Materials",
+  "Client Materials", 
   "Meeting Notes",
   "Final Deliverables"
 ];
+
+const CATEGORY_DESCRIPTIONS = {
+  "Session Homework": "Assignments to complete between sessions",
+  "Client Materials": "Resources shared with you by your advisor",
+  "Meeting Notes": "Notes and summaries from your meetings",
+  "Final Deliverables": "Final reports and completed materials"
+};
+
+const CATEGORY_ICONS = {
+  "Session Homework": <BookOpen className="h-8 w-8 text-blue-500" />,
+  "Client Materials": <FileText className="h-8 w-8 text-green-500" />,
+  "Meeting Notes": <FileImage className="h-8 w-8 text-yellow-500" />,
+  "Final Deliverables": <FileCheck className="h-8 w-8 text-purple-500" />
+};
 
 const Documents = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = 'Documents - Akros Advisory';
@@ -43,6 +59,10 @@ const Documents = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const getDocumentCountByCategory = (category: string): number => {
+    return documents.filter(doc => doc.category === category).length;
   };
 
   if (!user || isLoading) {
@@ -177,15 +197,7 @@ const Documents = () => {
     logDocumentActivity(documentId, 'view', 'Viewed the document');
   };
 
-  const handleUploadDocument = async (
-    file: File, 
-    category: string, 
-    metadata?: Record<string, any>, 
-    tags?: string[], 
-    isNewVersion?: boolean, 
-    existingDocumentId?: string, 
-    versionNotes?: string
-  ) => {
+  const handleUploadDocument = async (file: File, category: string) => {
     if (!user) return;
     
     try {
@@ -195,51 +207,6 @@ const Documents = () => {
       
       reader.onload = async (event) => {
         const fileUrl = event.target?.result as string;
-        
-        if (isNewVersion && existingDocumentId) {
-          const existingDocument = documents.find(doc => doc.id === existingDocumentId);
-          if (existingDocument) {
-            const { error } = await supabaseTyped
-              .from('documents')
-              .update({
-                url: fileUrl,
-                size: file.size,
-                version: (existingDocument.version || 1) + 1,
-                uploaded_at: new Date().toISOString()
-              })
-              .eq('id', existingDocumentId);
-              
-            if (error) throw error;
-            
-            setDocuments(prevDocs => 
-              prevDocs.map(doc => {
-                if (doc.id === existingDocumentId) {
-                  return {
-                    ...doc,
-                    url: fileUrl,
-                    size: file.size,
-                    uploadedAt: new Date(),
-                    version: (doc.version || 1) + 1
-                  };
-                }
-                return doc;
-              })
-            );
-            
-            logDocumentActivity(
-              existingDocumentId, 
-              'version', 
-              `Uploaded version ${(existingDocument.version || 1) + 1}`
-            );
-            
-            toast({
-              title: 'New version uploaded',
-              description: `Version ${(existingDocument.version || 1) + 1} of "${existingDocument.name}" has been uploaded.`,
-            });
-            
-            return;
-          }
-        }
         
         const { data, error } = await supabaseTyped
           .from('documents')
@@ -252,8 +219,7 @@ const Documents = () => {
             category,
             visible_to: [user.id],
             version: 1,
-            tags,
-            metadata
+            tags: []
           })
           .select()
           .single();
@@ -272,8 +238,8 @@ const Documents = () => {
           visibleTo: data.visible_to,
           reviewed: false,
           version: 1,
-          tags: data.tags || [],
-          metadata: data.metadata,
+          tags: [],
+          metadata: {},
           comments: [],
           annotations: []
         };
@@ -281,11 +247,6 @@ const Documents = () => {
         setDocuments(prev => [newDocument, ...prev]);
         
         logDocumentActivity(data.id, 'upload', 'Uploaded new document');
-        
-        toast({
-          title: 'Document uploaded',
-          description: `${file.name} has been uploaded successfully.`,
-        });
       };
       
       reader.readAsDataURL(file);
@@ -320,31 +281,45 @@ const Documents = () => {
     return activityRecord;
   };
 
-  return (
-    <div className="space-y-4 md:space-y-6">
-      <div className="text-left">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight font-heading">Documents</h1>
-        <p className="text-muted-foreground">
-          Manage and access your documents
-        </p>
-      </div>
-      
-      <DocumentsList 
-        documents={documents} 
+  if (selectedCategory) {
+    return (
+      <DocumentCategoryView
+        category={selectedCategory}
+        documents={documents}
+        onBackClick={() => setSelectedCategory(null)}
+        onUploadDocument={handleUploadDocument}
         onMarkAsReviewed={handleMarkAsReviewed}
         onAddComment={handleAddComment}
         onAddAnnotation={handleAddAnnotation}
         onAddTag={handleAddTag}
         onRemoveTag={handleRemoveTag}
-        onUploadClick={() => {}} // DocumentUpload component handles this now
         onDownload={handleDownloadDocument}
         onView={handleViewDocument}
       />
+    );
+  }
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <div>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight font-heading">Documents</h1>
+        <p className="text-muted-foreground">
+          Access and manage your documents by category
+        </p>
+      </div>
       
-      <DocumentUpload 
-        onUpload={handleUploadDocument}
-        existingDocuments={documents}
-      />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {DOCUMENT_CATEGORIES.map(category => (
+          <DocumentCategoryCard
+            key={category}
+            title={category}
+            description={CATEGORY_DESCRIPTIONS[category as keyof typeof CATEGORY_DESCRIPTIONS] || ''}
+            count={getDocumentCountByCategory(category)}
+            icon={CATEGORY_ICONS[category as keyof typeof CATEGORY_ICONS]}
+            onClick={() => setSelectedCategory(category)}
+          />
+        ))}
+      </div>
     </div>
   );
 };
