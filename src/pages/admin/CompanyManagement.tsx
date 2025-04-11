@@ -10,7 +10,7 @@ import { Search, Building, Plus, Users, Palette } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { CompanyDetailsDialog } from '@/components/admin/CompanyDetailsDialog';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseTyped } from '@/integrations/supabase/types-extension';
 
 interface Company {
   id: string;
@@ -46,7 +46,7 @@ const CompanyManagement = () => {
   const fetchCompanies = async () => {
     setIsLoading(true);
     try {
-      const { data: companiesData, error } = await supabase
+      const { data: companiesData, error } = await supabaseTyped
         .from('companies')
         .select('*');
       
@@ -55,7 +55,7 @@ const CompanyManagement = () => {
       // For each company, count the number of users
       const companiesWithUserCount = await Promise.all(
         companiesData.map(async (company) => {
-          const { count, error: countError } = await supabase
+          const { count, error: countError } = await supabaseTyped
             .from('profiles')
             .select('*', { count: 'exact', head: true })
             .eq('company_id', company.id);

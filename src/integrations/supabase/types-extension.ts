@@ -1,5 +1,6 @@
 
 import { Json, Database } from './types';
+import { createClient } from '@supabase/supabase-js';
 
 // Extended Database interface that includes our new tables
 export interface ExtendedDatabase extends Database {
@@ -20,6 +21,7 @@ export interface ExtendedDatabase extends Database {
           version: number | null;
           tags: string[] | null;
           metadata: Json | null;
+          company_id: string | null;
         };
         Insert: {
           id?: string;
@@ -35,6 +37,7 @@ export interface ExtendedDatabase extends Database {
           version?: number | null;
           tags?: string[] | null;
           metadata?: Json | null;
+          company_id?: string | null;
         };
         Update: {
           id?: string;
@@ -50,6 +53,7 @@ export interface ExtendedDatabase extends Database {
           version?: number | null;
           tags?: string[] | null;
           metadata?: Json | null;
+          company_id?: string | null;
         };
       };
       courses: {
@@ -194,6 +198,111 @@ export interface ExtendedDatabase extends Database {
           created_at?: string;
         };
       };
+      companies: {
+        Row: {
+          id: string;
+          name: string;
+          domain: string | null;
+          logo_url: string | null;
+          primary_color: string | null;
+          secondary_color: string | null;
+          accent_color: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          domain?: string | null;
+          logo_url?: string | null;
+          primary_color?: string | null;
+          secondary_color?: string | null;
+          accent_color?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          domain?: string | null;
+          logo_url?: string | null;
+          primary_color?: string | null;
+          secondary_color?: string | null;
+          accent_color?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      company_branding: {
+        Row: {
+          id: string;
+          company_id: string;
+          company_name: string | null;
+          logo_url: string | null;
+          favicon_url: string | null;
+          primary_color: string | null;
+          secondary_color: string | null;
+          accent_color: string | null;
+          background_color: string | null;
+          text_color: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          company_name?: string | null;
+          logo_url?: string | null;
+          favicon_url?: string | null;
+          primary_color?: string | null;
+          secondary_color?: string | null;
+          accent_color?: string | null;
+          background_color?: string | null;
+          text_color?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          company_id?: string;
+          company_name?: string | null;
+          logo_url?: string | null;
+          favicon_url?: string | null;
+          primary_color?: string | null;
+          secondary_color?: string | null;
+          accent_color?: string | null;
+          background_color?: string | null;
+          text_color?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      profiles: {
+        Row: {
+          id: string;
+          name: string | null;
+          email: string;
+          avatar: string | null;
+          created_at: string;
+          company_id: string | null;
+        };
+        Insert: {
+          id: string;
+          name?: string | null;
+          email: string;
+          avatar?: string | null;
+          created_at?: string;
+          company_id?: string | null;
+        };
+        Update: {
+          id?: string;
+          name?: string | null;
+          email?: string;
+          avatar?: string | null;
+          created_at?: string;
+          company_id?: string | null;
+        };
+      };
     };
     Views: Database['public']['Views'];
     Functions: Database['public']['Functions'];
@@ -201,9 +310,6 @@ export interface ExtendedDatabase extends Database {
     CompositeTypes: Database['public']['CompositeTypes'];
   };
 }
-
-// Create client with extended types
-import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = "https://gxkdlylqmwwlhyyqlwfm.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4a2RseWxxbXd3bGh5eXFsd2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQwNTk5NzIsImV4cCI6MjA1OTYzNTk3Mn0.179J82KbfECLxuFrbjr-7pE8c8Cw3iSglsKTtq2Ox74";

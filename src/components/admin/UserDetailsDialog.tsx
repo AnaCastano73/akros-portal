@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { 
   Dialog, DialogContent, DialogDescription, 
   DialogHeader, DialogTitle, DialogClose 
@@ -66,7 +67,7 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
     if (!user) return;
     
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseTyped
         .from('profiles')
         .select('company_id')
         .eq('id', user.id)

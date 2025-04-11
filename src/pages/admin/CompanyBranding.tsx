@@ -7,16 +7,16 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, Save, Building } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { BrandingDialog } from '@/components/dashboard/BrandingDialog';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseTyped } from '@/integrations/supabase/types-extension';
 
 interface Company {
   id: string;
   name: string;
   domain: string | null;
   logo_url: string | null;
-  primary_color: string;
-  secondary_color: string;
-  accent_color: string;
+  primary_color: string | null;
+  secondary_color: string | null;
+  accent_color: string | null;
 }
 
 interface BrandingConfig {
@@ -61,7 +61,7 @@ const CompanyBranding = () => {
     setIsLoading(true);
     try {
       // Get company details
-      const { data: companyData, error: companyError } = await supabase
+      const { data: companyData, error: companyError } = await supabaseTyped
         .from('companies')
         .select('*')
         .eq('id', companyId)
@@ -72,7 +72,7 @@ const CompanyBranding = () => {
       setCompany(companyData);
       
       // Get company branding if exists
-      const { data: brandingData, error: brandingError } = await supabase
+      const { data: brandingData, error: brandingError } = await supabaseTyped
         .from('company_branding')
         .select('*')
         .eq('company_id', companyId)
@@ -115,7 +115,7 @@ const CompanyBranding = () => {
     setIsLoading(true);
     try {
       // First update company
-      const { error: companyError } = await supabase
+      const { error: companyError } = await supabaseTyped
         .from('companies')
         .update({
           name: branding.companyName,
@@ -130,7 +130,7 @@ const CompanyBranding = () => {
       if (companyError) throw companyError;
       
       // Then check if branding record exists and update or insert
-      const { data: existingBranding, error: checkError } = await supabase
+      const { data: existingBranding, error: checkError } = await supabaseTyped
         .from('company_branding')
         .select('id')
         .eq('company_id', company.id)
@@ -142,7 +142,7 @@ const CompanyBranding = () => {
       
       if (existingBranding) {
         // Update existing branding
-        const { error: updateError } = await supabase
+        const { error: updateError } = await supabaseTyped
           .from('company_branding')
           .update({
             company_name: branding.companyName,
@@ -157,7 +157,7 @@ const CompanyBranding = () => {
         if (updateError) throw updateError;
       } else {
         // Insert new branding
-        const { error: insertError } = await supabase
+        const { error: insertError } = await supabaseTyped
           .from('company_branding')
           .insert({
             company_id: company.id,

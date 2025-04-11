@@ -8,7 +8,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseTyped } from '@/integrations/supabase/types-extension';
 import { toast } from '@/hooks/use-toast';
 
 interface Company {
@@ -37,7 +37,7 @@ export function UserCompanyAssignment({
   const fetchCompanies = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseTyped
         .from('companies')
         .select('id, name')
         .order('name');
@@ -54,7 +54,7 @@ export function UserCompanyAssignment({
   
   const handleCompanyChange = async (companyId: string | null) => {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseTyped
         .from('profiles')
         .update({ company_id: companyId })
         .eq('id', userId);

@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { UserPlus, Building, User } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseTyped } from '@/integrations/supabase/types-extension';
 import { User as UserType } from '@/types/auth';
 
 interface Company {
@@ -82,7 +82,7 @@ export function CompanyDetailsDialog({
     
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseTyped
         .from('profiles')
         .select('id, name, email, avatar')
         .eq('company_id', company.id);
@@ -92,7 +92,7 @@ export function CompanyDetailsDialog({
       // For each profile, get the primary role
       const usersWithRoles = await Promise.all(
         data.map(async (profile) => {
-          const { data: roleData, error: roleError } = await supabase
+          const { data: roleData, error: roleError } = await supabaseTyped
             .rpc('get_primary_role', { _user_id: profile.id });
             
           if (roleError) throw roleError;
@@ -124,7 +124,7 @@ export function CompanyDetailsDialog({
     if (!company) return;
     
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseTyped
         .from('profiles')
         .select('id, name, email, avatar')
         .is('company_id', null);
@@ -134,7 +134,7 @@ export function CompanyDetailsDialog({
       // For each profile, get the primary role
       const usersWithRoles = await Promise.all(
         data.map(async (profile) => {
-          const { data: roleData, error: roleError } = await supabase
+          const { data: roleData, error: roleError } = await supabaseTyped
             .rpc('get_primary_role', { _user_id: profile.id });
             
           if (roleError) throw roleError;
@@ -177,7 +177,7 @@ export function CompanyDetailsDialog({
       
       if (company) {
         // Update existing company
-        const { error } = await supabase
+        const { error } = await supabaseTyped
           .from('companies')
           .update({
             name: companyData.name,
@@ -194,7 +194,7 @@ export function CompanyDetailsDialog({
         });
       } else {
         // Create new company
-        const { error } = await supabase
+        const { error } = await supabaseTyped
           .from('companies')
           .insert({
             name: companyData.name,
@@ -228,7 +228,7 @@ export function CompanyDetailsDialog({
     if (!company) return;
     
     try {
-      const { error } = await supabase
+      const { error } = await supabaseTyped
         .from('profiles')
         .update({ company_id: company.id })
         .eq('id', userId);
@@ -256,7 +256,7 @@ export function CompanyDetailsDialog({
     if (!company) return;
     
     try {
-      const { error } = await supabase
+      const { error } = await supabaseTyped
         .from('profiles')
         .update({ company_id: null })
         .eq('id', userId);
