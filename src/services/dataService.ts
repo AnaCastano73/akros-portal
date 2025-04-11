@@ -253,7 +253,7 @@ export const getAllUsers = async (): Promise<User[]> => {
     // Get all profiles with their roles and company information
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
-      .select('*, companies(name)');
+      .select('*, companies:company_id(name)');
       
     if (profilesError) throw profilesError;
     
@@ -267,14 +267,18 @@ export const getAllUsers = async (): Promise<User[]> => {
         return null;
       }
       
+      // Extract company data safely
+      const companyId = profile.company_id;
+      const companyName = profile.companies?.name || undefined;
+      
       return {
         id: profile.id,
         email: profile.email,
         name: profile.name || profile.email.split('@')[0] || 'Unknown',
         role: roleData,
         avatar: profile.avatar || '/placeholder.svg',
-        companyId: profile.company_id,
-        companyName: profile.companies?.name
+        companyId,
+        companyName
       };
     }));
     
@@ -312,7 +316,7 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
     // Get user profile with company info
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('*, companies(name)')
+      .select('*, companies:company_id(name)')
       .eq('id', userId)
       .single();
       
@@ -324,13 +328,16 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
       
     if (roleError) throw roleError;
     
+    // Extract company ID safely
+    const companyId = profile.company_id;
+    
     return {
       id: profile.id,
       email: profile.email,
       name: profile.name,
       avatar: profile.avatar,
       role: roleData,
-      companyId: profile.company_id
+      companyId
     };
   } catch (error) {
     console.error('Error fetching user profile:', error);

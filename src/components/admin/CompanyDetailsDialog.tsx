@@ -6,6 +6,7 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Company } from '@/types/company';
 import { User } from '@/types/auth';
 import { toast } from '@/hooks/use-toast';

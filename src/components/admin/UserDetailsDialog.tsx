@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { 
   Dialog, DialogContent, DialogDescription, 
@@ -11,6 +12,7 @@ import { User, UserRole } from '@/types/auth';
 import { DocumentCard } from '@/components/documents/DocumentCard';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { FilePlus, Users, UserIcon, Building } from 'lucide-react';
 import { v4 as uuidv4 } from '@/lib/utils';

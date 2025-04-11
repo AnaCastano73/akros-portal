@@ -18,7 +18,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Get user profile with company info
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('*, companies(name)')
+        .select('*, companies:company_id(name)')
         .eq('id', userId)
         .maybeSingle(); // Using maybeSingle instead of single to prevent errors if no profile exists
 
@@ -80,6 +80,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userData = await fetchUserProfile(id);
       
       if (userData) {
+        // Extract company data safely
+        const companyId = userData.profile.company_id;
+        const companyName = userData.profile.companies?.name || undefined;
+        
         // Update with the database information
         setUser({
           id,
@@ -87,8 +91,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: userData.profile.name || email?.split('@')[0] || "User",
           role: userData.role,
           avatar: userData.profile.avatar,
-          companyId: userData.profile.company_id,
-          companyName: userData.profile.companies?.name
+          companyId,
+          companyName
         });
       }
       

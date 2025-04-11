@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { supabaseTyped } from '@/integrations/supabase/types-extension';
 import { Company, CompanyBranding } from '@/types/company';
@@ -5,7 +6,7 @@ import { User } from '@/types/auth';
 
 export const getAllCompanies = async (): Promise<Company[]> => {
   try {
-    const { data: companies, error } = await supabase
+    const { data: companies, error } = await supabaseTyped
       .from('companies')
       .select('*')
       .order('name');
@@ -31,7 +32,7 @@ export const getAllCompanies = async (): Promise<Company[]> => {
 
 export const getCompanyById = async (companyId: string): Promise<Company | null> => {
   try {
-    const { data: company, error } = await supabase
+    const { data: company, error } = await supabaseTyped
       .from('companies')
       .select('*')
       .eq('id', companyId)
@@ -58,7 +59,7 @@ export const getCompanyById = async (companyId: string): Promise<Company | null>
 
 export const getUserCompany = async (userId: string): Promise<Company | null> => {
   try {
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError } = await supabaseTyped
       .from('profiles')
       .select('company_id')
       .eq('id', userId)
@@ -82,7 +83,7 @@ export const createCompany = async (companyData: {
   domain?: string;
 }): Promise<Company | null> => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseTyped
       .from('companies')
       .insert({
         name: companyData.name,
@@ -128,7 +129,7 @@ export const updateCompany = async (
     if (companyData.accentColor !== undefined) updateData.accent_color = companyData.accentColor;
     if (companyData.domain !== undefined) updateData.domain = companyData.domain;
     
-    const { error } = await supabase
+    const { error } = await supabaseTyped
       .from('companies')
       .update(updateData)
       .eq('id', companyId);
@@ -144,7 +145,7 @@ export const updateCompany = async (
 
 export const assignUserToCompany = async (userId: string, companyId: string): Promise<boolean> => {
   try {
-    const { error } = await supabase
+    const { error } = await supabaseTyped
       .from('profiles')
       .update({ company_id: companyId })
       .eq('id', userId);
@@ -160,7 +161,7 @@ export const assignUserToCompany = async (userId: string, companyId: string): Pr
 
 export const getCompanyBranding = async (companyId: string): Promise<CompanyBranding | null> => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseTyped
       .from('company_branding')
       .select('*')
       .eq('company_id', companyId)
@@ -199,7 +200,7 @@ export const createCompanyBranding = async (
   brandingData: Partial<Omit<CompanyBranding, 'id' | 'companyId' | 'createdAt' | 'updatedAt'>>
 ): Promise<CompanyBranding | null> => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseTyped
       .from('company_branding')
       .insert({
         company_id: companyId,
@@ -243,7 +244,7 @@ export const updateCompanyBranding = async (
 ): Promise<boolean> => {
   try {
     // Check if branding exists first
-    const { data: existingBranding, error: checkError } = await supabase
+    const { data: existingBranding, error: checkError } = await supabaseTyped
       .from('company_branding')
       .select('id')
       .eq('company_id', companyId)
@@ -269,7 +270,7 @@ export const updateCompanyBranding = async (
     if (brandingData.textColor !== undefined) updateData.text_color = brandingData.textColor;
     if (brandingData.companyName !== undefined) updateData.company_name = brandingData.companyName;
     
-    const { error } = await supabase
+    const { error } = await supabaseTyped
       .from('company_branding')
       .update(updateData)
       .eq('company_id', companyId);
@@ -285,7 +286,7 @@ export const updateCompanyBranding = async (
 
 export const getCompanyUsers = async (companyId: string): Promise<User[]> => {
   try {
-    const { data: profiles, error } = await supabase
+    const { data: profiles, error } = await supabaseTyped
       .from('profiles')
       .select('id, name, email, avatar, company_id')
       .eq('company_id', companyId);

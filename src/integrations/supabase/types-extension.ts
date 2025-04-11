@@ -1,225 +1,35 @@
-import { Json, Database } from './types';
 
-// Extended Database interface that includes our new tables
-export interface ExtendedDatabase extends Database {
+import { createClient } from '@supabase/supabase-js';
+
+// Define a type for the custom Supabase client with typed tables
+interface Database {
   public: {
-    Tables: Database['public']['Tables'] & {
-      documents: {
+    Tables: {
+      chat_messages: {
+        Row: {
+          id: string;
+          content: string;
+          sender_id: string;
+          room_id: string;
+          created_at: string;
+          read: boolean;
+          recipient_id: string;
+        };
+      };
+      chat_room_members: {
+        Row: {
+          id: string;
+          room_id: string;
+          user_id: string;
+          joined_at: string;
+        };
+      };
+      chat_rooms: {
         Row: {
           id: string;
           name: string;
-          url: string;
-          type: string;
-          size: number;
-          uploaded_by: string;
-          uploaded_at: string;
-          category: string;
-          visible_to: string[];
-          reviewed: boolean | null;
-          version: number | null;
-          tags: string[] | null;
-          metadata: Json | null;
-          company_id: string | null;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          url: string;
-          type: string;
-          size: number;
-          uploaded_by: string;
-          uploaded_at?: string;
-          category: string;
-          visible_to: string[];
-          reviewed?: boolean | null;
-          version?: number | null;
-          tags?: string[] | null;
-          metadata?: Json | null;
-          company_id?: string | null;
-        };
-        Update: {
-          id?: string;
-          name?: string;
-          url?: string;
-          type?: string;
-          size?: number;
-          uploaded_by?: string;
-          uploaded_at?: string;
-          category?: string;
-          visible_to?: string[];
-          reviewed?: boolean | null;
-          version?: number | null;
-          tags?: string[] | null;
-          metadata?: Json | null;
-          company_id?: string | null;
-        };
-      };
-      courses: {
-        Row: {
-          id: string;
-          title: string;
-          description: string;
-          image_url: string | null;
           created_by: string;
           created_at: string;
-          updated_at: string;
-          tags: string[] | null;
-          published: boolean | null;
-        };
-        Insert: {
-          id?: string;
-          title: string;
-          description: string;
-          image_url?: string | null;
-          created_by: string;
-          created_at?: string;
-          updated_at?: string;
-          tags?: string[] | null;
-          published?: boolean | null;
-        };
-        Update: {
-          id?: string;
-          title?: string;
-          description?: string;
-          image_url?: string | null;
-          created_by?: string;
-          created_at?: string;
-          updated_at?: string;
-          tags?: string[] | null;
-          published?: boolean | null;
-        };
-      };
-      course_modules: {
-        Row: {
-          id: string;
-          course_id: string;
-          title: string;
-          description: string | null;
-          order_index: number;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          course_id: string;
-          title: string;
-          description?: string | null;
-          order_index: number;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          course_id?: string;
-          title?: string;
-          description?: string | null;
-          order_index?: number;
-          created_at?: string;
-        };
-      };
-      course_lessons: {
-        Row: {
-          id: string;
-          module_id: string;
-          title: string;
-          content: string;
-          order_index: number;
-          duration: number | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          module_id: string;
-          title: string;
-          content: string;
-          order_index: number;
-          duration?: number | null;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          module_id?: string;
-          title?: string;
-          content?: string;
-          order_index?: number;
-          duration?: number | null;
-          created_at?: string;
-        };
-      };
-      course_enrollments: {
-        Row: {
-          id: string;
-          course_id: string;
-          user_id: string;
-          enrolled_at: string;
-          completed: boolean | null;
-          last_accessed: string;
-        };
-        Insert: {
-          id?: string;
-          course_id: string;
-          user_id: string;
-          enrolled_at?: string;
-          completed?: boolean | null;
-          last_accessed?: string;
-        };
-        Update: {
-          id?: string;
-          course_id?: string;
-          user_id?: string;
-          enrolled_at?: string;
-          completed?: boolean | null;
-          last_accessed?: string;
-        };
-      };
-      lesson_progress: {
-        Row: {
-          id: string;
-          lesson_id: string;
-          user_id: string;
-          completed: boolean | null;
-          completed_at: string | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          lesson_id: string;
-          user_id: string;
-          completed?: boolean | null;
-          completed_at?: string | null;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          lesson_id?: string;
-          user_id?: string;
-          completed?: boolean | null;
-          completed_at?: string | null;
-          created_at?: string;
-        };
-      };
-      profiles: {
-        Row: {
-          id: string;
-          email: string;
-          name: string | null;
-          avatar: string | null;
-          company_id: string | null;
-          created_at: string;
-        };
-        Insert: {
-          id: string;
-          email: string;
-          name?: string | null;
-          avatar?: string | null;
-          company_id?: string | null;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          email?: string;
-          name?: string | null;
-          avatar?: string | null;
-          company_id?: string | null;
-          created_at?: string;
         };
       };
       companies: {
@@ -233,28 +43,6 @@ export interface ExtendedDatabase extends Database {
           domain: string | null;
           created_at: string;
           updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          logo_url?: string | null;
-          primary_color?: string | null;
-          secondary_color?: string | null;
-          accent_color?: string | null;
-          domain?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          name?: string;
-          logo_url?: string | null;
-          primary_color?: string | null;
-          secondary_color?: string | null;
-          accent_color?: string | null;
-          domain?: string | null;
-          created_at?: string;
-          updated_at?: string;
         };
       };
       company_branding: {
@@ -272,55 +60,130 @@ export interface ExtendedDatabase extends Database {
           created_at: string;
           updated_at: string;
         };
-        Insert: {
-          id?: string;
-          company_id: string;
-          logo_url?: string | null;
-          favicon_url?: string | null;
-          primary_color?: string | null;
-          secondary_color?: string | null;
-          accent_color?: string | null;
-          background_color?: string | null;
-          text_color?: string | null;
-          company_name?: string | null;
-          created_at?: string;
-          updated_at?: string;
+      };
+      course_enrollments: {
+        Row: {
+          id: string;
+          user_id: string;
+          course_id: string;
+          enrolled_at: string;
+          completed: boolean;
+          last_accessed: string;
         };
-        Update: {
-          id?: string;
-          company_id?: string;
-          logo_url?: string | null;
-          favicon_url?: string | null;
-          primary_color?: string | null;
-          secondary_color?: string | null;
-          accent_color?: string | null;
-          background_color?: string | null;
-          text_color?: string | null;
-          company_name?: string | null;
-          created_at?: string;
-          updated_at?: string;
+      };
+      courses: {
+        Row: {
+          id: string;
+          title: string;
+          description: string;
+          image_url: string;
+          tags: string[];
+          published: boolean;
+          created_at: string;
+          updated_at: string;
+          created_by: string;
+        };
+      };
+      course_modules: {
+        Row: {
+          id: string;
+          course_id: string;
+          title: string;
+          description: string;
+          order_index: number;
+          created_at: string;
+        };
+      };
+      course_lessons: {
+        Row: {
+          id: string;
+          module_id: string;
+          title: string;
+          content: string;
+          order_index: number;
+          duration: number;
+          created_at: string;
+        };
+      };
+      documents: {
+        Row: {
+          id: string;
+          name: string;
+          url: string;
+          type: string;
+          size: number;
+          uploaded_by: string;
+          uploaded_at: string;
+          category: string;
+          visible_to: string[];
+          reviewed: boolean;
+          version: number;
+          tags: string[];
+          metadata: any;
+          company_id: string | null;
+        };
+      };
+      lesson_progress: {
+        Row: {
+          id: string;
+          user_id: string;
+          lesson_id: string;
+          completed: boolean;
+          completed_at: string;
+          created_at: string;
+        };
+      };
+      notification_preferences: {
+        Row: {
+          id: string;
+          user_id: string;
+          email_notifications: boolean;
+          browser_notifications: boolean;
+          push_notifications: boolean;
+          new_messages: boolean;
+          document_updates: boolean;
+          status_changes: boolean;
+          mentions: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+      };
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: string;
+          title: string;
+          content: string;
+          link: string;
+          read: boolean;
+          created_at: string;
+        };
+      };
+      profiles: {
+        Row: {
+          id: string;
+          email: string;
+          name: string;
+          avatar: string;
+          created_at: string;
+          company_id: string | null;
+        };
+      };
+      user_roles: {
+        Row: {
+          id: string;
+          user_id: string;
+          role: string;
+          created_at: string;
         };
       };
     };
-    Views: Database['public']['Views'];
-    Functions: Database['public']['Functions'] & {
-      user_belongs_to_company: {
-        Args: { user_id: string; company_id: string };
-        Returns: boolean;
-      };
-    };
-    Enums: Database['public']['Enums'];
-    CompositeTypes: Database['public']['CompositeTypes'];
   };
 }
 
-// Create client with extended types
-import { createClient } from '@supabase/supabase-js';
+// Create the typed Supabase client
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-const SUPABASE_URL = "https://gxkdlylqmwwlhyyqlwfm.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4a2RseWxxbXd3bGh5eXFsd2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQwNTk5NzIsImV4cCI6MjA1OTYzNTk3Mn0.179J82KbfECLxuFrbjr-7pE8c8Cw3iSglsKTtq2Ox74";
-
-export const supabaseTyped = createClient<ExtendedDatabase>(
-  SUPABASE_URL,
-  SUPABASE_PUBLISHABLE_KEY
-);
+export const supabaseTyped = createClient<Database>(supabaseUrl, supabaseKey);
