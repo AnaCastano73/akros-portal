@@ -23,7 +23,7 @@ const UserManagement = () => {
   const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
-    document.title = 'User Management - Akros Advisory Hub';
+    document.title = 'User Management - Healthwise';
     
     // Fetch users if admin
     if (user?.role === 'admin') {
@@ -35,6 +35,7 @@ const UserManagement = () => {
     setIsLoading(true);
     try {
       const usersData = await getAllUsers();
+      console.log('Fetched users:', usersData.length);
       setUsers(usersData);
     } catch (error: any) {
       console.error('Error fetching users:', error);
@@ -117,45 +118,46 @@ const UserManagement = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredUsers.map(currentUser => (
-                <TableRow key={currentUser.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-full bg-gray-200">
-                        <img 
-                          src={currentUser.avatar || '/placeholder.svg'} 
-                          alt={currentUser.name} 
-                          className="h-full w-full rounded-full object-cover" 
-                        />
+              {filteredUsers.length > 0 ? (
+                filteredUsers.map(currentUser => (
+                  <TableRow key={currentUser.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-full bg-gray-200">
+                          <img 
+                            src={currentUser.avatar || '/placeholder.svg'} 
+                            alt={currentUser.name} 
+                            className="h-full w-full rounded-full object-cover" 
+                          />
+                        </div>
+                        <span className="font-medium">{currentUser.name}</span>
                       </div>
-                      <span className="font-medium">{currentUser.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{currentUser.email}</TableCell>
-                  <TableCell>
-                    <Badge className="capitalize">{currentUser.role}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        title="Edit User"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleViewUserDetails(currentUser)}
-                      >
-                        View Details
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {filteredUsers.length === 0 && (
+                    </TableCell>
+                    <TableCell>{currentUser.email}</TableCell>
+                    <TableCell>
+                      <Badge className="capitalize">{currentUser.role}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          title="Edit User"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewUserDetails(currentUser)}
+                        >
+                          View Details
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center py-6">
                     No users found. Try adjusting your search.

@@ -182,20 +182,28 @@ export const getCourseProgressForUser = async (userId: string): Promise<CoursePr
 export const getAllUsers = async (): Promise<User[]> => {
   try {
     // Get all profiles with their roles
-    const { data: profiles, error: profilesError } = await supabase
+    const { data: profiles, error: profilesError } = await supabaseTyped
       .from('profiles')
       .select('*');
       
     if (profilesError) throw profilesError;
     
     // For each profile, get their primary role
-    const users = await Promise.all(profiles.map(async (profile) => {
+    const users = await Promise.all((profiles || []).map(async (profile) => {
       const { data: roleData, error: roleError } = await supabase
         .rpc('get_primary_role', { _user_id: profile.id });
         
       if (roleError) {
         console.error('Error fetching role for user:', profile.id, roleError);
-        return null;
+        // Default to client role if there's an error getting role
+        return {
+          id: profile.id,
+          email: profile.email,
+          name: profile.name || profile.email.split('@')[0] || 'Unknown',
+          role: 'client' as UserRole,
+          avatar: profile.avatar || '/placeholder.svg',
+          company_id: profile.company_id
+        };
       }
       
       return {
@@ -203,12 +211,16 @@ export const getAllUsers = async (): Promise<User[]> => {
         email: profile.email,
         name: profile.name || profile.email.split('@')[0] || 'Unknown',
         role: roleData as UserRole,
-        avatar: profile.avatar || '/placeholder.svg'
+        avatar: profile.avatar || '/placeholder.svg',
+        company_id: profile.company_id
       };
     }));
     
     // Filter out any null values (from errors)
-    return users.filter(Boolean) as User[];
+    const validUsers = users.filter(Boolean) as User[];
+    
+    console.log('Retrieved users:', validUsers.length);
+    return validUsers;
   } catch (error) {
     console.error('Error fetching users:', error);
     return [];
