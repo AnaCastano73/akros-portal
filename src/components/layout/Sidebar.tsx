@@ -2,7 +2,10 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { Book, FileText, Home, Settings, Users, User, Edit, BookOpen, FileSignature, Building, MessageCircle, Bell, BarChart2, LogOut } from 'lucide-react';
+import { 
+  Book, FileText, Home, Settings, Users, User, Edit, BookOpen, 
+  FileSignature, Building, MessageCircle, Bell, BarChart2, LogOut
+} from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -104,6 +107,11 @@ export function AppSidebar() {
       icon: Users,
     },
     {
+      title: 'Companies',
+      href: '/admin/companies',
+      icon: Building,
+    },
+    {
       title: 'Course Enrollments',
       href: '/admin/courses',
       icon: BookOpen,
@@ -153,7 +161,7 @@ export function AppSidebar() {
             H
           </div>
           <div className="font-heading font-bold tracking-tight">
-            Healthwise
+            {user?.companyName || 'Healthwise'}
           </div>
         </div>
       </SidebarHeader>

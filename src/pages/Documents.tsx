@@ -9,27 +9,30 @@ import { Document, DocumentAnnotation, DocumentActivity } from '@/types/document
 import { supabase } from '@/integrations/supabase/client';
 import { supabaseTyped } from '@/integrations/supabase/types-extension';
 import { v4 as uuidv4 } from '@/lib/utils';
-import { FileText, FileImage, BookOpen, FileCheck } from 'lucide-react';
+import { FileText, FileImage, BookOpen, FileCheck, Building } from 'lucide-react';
 
 const DOCUMENT_CATEGORIES = [
   "Session Homework",
   "Client Materials", 
   "Meeting Notes",
-  "Final Deliverables"
+  "Final Deliverables",
+  "Company Documents"
 ];
 
 const CATEGORY_DESCRIPTIONS = {
   "Session Homework": "Assignments to complete between sessions",
   "Client Materials": "Resources shared with you by your advisor",
   "Meeting Notes": "Notes and summaries from your meetings",
-  "Final Deliverables": "Final reports and completed materials"
+  "Final Deliverables": "Final reports and completed materials",
+  "Company Documents": "Documents shared with your entire company"
 };
 
 const CATEGORY_ICONS = {
   "Session Homework": <BookOpen className="h-8 w-8 text-blue-500" />,
   "Client Materials": <FileText className="h-8 w-8 text-green-500" />,
   "Meeting Notes": <FileImage className="h-8 w-8 text-yellow-500" />,
-  "Final Deliverables": <FileCheck className="h-8 w-8 text-purple-500" />
+  "Final Deliverables": <FileCheck className="h-8 w-8 text-purple-500" />,
+  "Company Documents": <Building className="h-8 w-8 text-indigo-500" />
 };
 
 const Documents = () => {
@@ -40,7 +43,7 @@ const Documents = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   useEffect(() => {
-    document.title = 'Documents - Akros Advisory';
+    document.title = 'Documents - Healthwise Advisory';
     if (user) {
       fetchDocuments();
     } else {
@@ -63,6 +66,9 @@ const Documents = () => {
   };
 
   const getDocumentCountByCategory = (category: string): number => {
+    if (category === "Company Documents") {
+      return documents.filter(doc => doc.companyId).length;
+    }
     return documents.filter(doc => doc.category === category).length;
   };
 
@@ -209,19 +215,28 @@ const Documents = () => {
       reader.onload = async (event) => {
         const fileUrl = event.target?.result as string;
         
+        // Determine if this is a company document
+        const isCompanyDocument = category === "Company Documents";
+        const insertData: any = {
+          name: file.name,
+          url: fileUrl,
+          type: file.type,
+          size: file.size,
+          uploaded_by: user.id,
+          category: isCompanyDocument ? "Company Documents" : category,
+          visible_to: [user.id],
+          version: 1,
+          tags: []
+        };
+        
+        // If uploading to company documents and user has a company
+        if (isCompanyDocument && user.companyId) {
+          insertData.company_id = user.companyId;
+        }
+        
         const { data, error } = await supabaseTyped
           .from('documents')
-          .insert({
-            name: file.name,
-            url: fileUrl,
-            type: file.type,
-            size: file.size,
-            uploaded_by: user.id,
-            category,
-            visible_to: [user.id],
-            version: 1,
-            tags: []
-          })
+          .insert(insertData)
           .select()
           .single();
           
@@ -237,6 +252,7 @@ const Documents = () => {
           uploadedAt: new Date(data.uploaded_at),
           category: data.category,
           visibleTo: data.visible_to,
+          companyId: data.company_id,
           reviewed: false,
           version: 1,
           tags: [],
@@ -283,10 +299,18 @@ const Documents = () => {
   };
 
   if (selectedCategory) {
+    // For Company Documents, we need a different filter
+    let categoryDocuments = documents;
+    if (selectedCategory === "Company Documents") {
+      categoryDocuments = documents.filter(doc => doc.companyId);
+    } else {
+      categoryDocuments = documents.filter(doc => doc.category === selectedCategory);
+    }
+    
     return (
       <DocumentCategoryView
         category={selectedCategory}
-        documents={documents}
+        documents={categoryDocuments}
         onBackClick={() => setSelectedCategory(null)}
         onUploadDocument={handleUploadDocument}
         onMarkAsReviewed={handleMarkAsReviewed}
@@ -300,6 +324,11 @@ const Documents = () => {
     );
   }
 
+  // Only show Company Documents category if user has a company
+  const filteredCategories = user.companyId 
+    ? DOCUMENT_CATEGORIES 
+    : DOCUMENT_CATEGORIES.filter(cat => cat !== "Company Documents");
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -310,7 +339,7 @@ const Documents = () => {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {DOCUMENT_CATEGORIES.map(category => (
+        {filteredCategories.map(category => (
           <DocumentCategoryCard
             key={category}
             title={category}

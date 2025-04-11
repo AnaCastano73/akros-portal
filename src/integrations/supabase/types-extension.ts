@@ -1,4 +1,3 @@
-
 import { Json, Database } from './types';
 
 // Extended Database interface that includes our new tables
@@ -20,6 +19,7 @@ export interface ExtendedDatabase extends Database {
           version: number | null;
           tags: string[] | null;
           metadata: Json | null;
+          company_id: string | null;
         };
         Insert: {
           id?: string;
@@ -35,6 +35,7 @@ export interface ExtendedDatabase extends Database {
           version?: number | null;
           tags?: string[] | null;
           metadata?: Json | null;
+          company_id?: string | null;
         };
         Update: {
           id?: string;
@@ -50,6 +51,7 @@ export interface ExtendedDatabase extends Database {
           version?: number | null;
           tags?: string[] | null;
           metadata?: Json | null;
+          company_id?: string | null;
         };
       };
       courses: {
@@ -194,9 +196,119 @@ export interface ExtendedDatabase extends Database {
           created_at?: string;
         };
       };
+      profiles: {
+        Row: {
+          id: string;
+          email: string;
+          name: string | null;
+          avatar: string | null;
+          company_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id: string;
+          email: string;
+          name?: string | null;
+          avatar?: string | null;
+          company_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          email?: string;
+          name?: string | null;
+          avatar?: string | null;
+          company_id?: string | null;
+          created_at?: string;
+        };
+      };
+      companies: {
+        Row: {
+          id: string;
+          name: string;
+          logo_url: string | null;
+          primary_color: string | null;
+          secondary_color: string | null;
+          accent_color: string | null;
+          domain: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          logo_url?: string | null;
+          primary_color?: string | null;
+          secondary_color?: string | null;
+          accent_color?: string | null;
+          domain?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          logo_url?: string | null;
+          primary_color?: string | null;
+          secondary_color?: string | null;
+          accent_color?: string | null;
+          domain?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      company_branding: {
+        Row: {
+          id: string;
+          company_id: string;
+          logo_url: string | null;
+          favicon_url: string | null;
+          primary_color: string | null;
+          secondary_color: string | null;
+          accent_color: string | null;
+          background_color: string | null;
+          text_color: string | null;
+          company_name: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          logo_url?: string | null;
+          favicon_url?: string | null;
+          primary_color?: string | null;
+          secondary_color?: string | null;
+          accent_color?: string | null;
+          background_color?: string | null;
+          text_color?: string | null;
+          company_name?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          company_id?: string;
+          logo_url?: string | null;
+          favicon_url?: string | null;
+          primary_color?: string | null;
+          secondary_color?: string | null;
+          accent_color?: string | null;
+          background_color?: string | null;
+          text_color?: string | null;
+          company_name?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
     Views: Database['public']['Views'];
-    Functions: Database['public']['Functions'];
+    Functions: Database['public']['Functions'] & {
+      user_belongs_to_company: {
+        Args: { user_id: string; company_id: string };
+        Returns: boolean;
+      };
+    };
     Enums: Database['public']['Enums'];
     CompositeTypes: Database['public']['CompositeTypes'];
   };
