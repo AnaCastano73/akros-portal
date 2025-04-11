@@ -1,4 +1,3 @@
-
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,7 +21,6 @@ export function AppSidebar() {
     navigate('/');
   };
 
-  // Define common navigation items
   const commonItems = [
     {
       title: 'Dashboard',
@@ -44,7 +42,6 @@ export function AppSidebar() {
     },
   ];
 
-  // Role-specific navigation items
   const clientItems = [
     {
       title: 'Courses',
@@ -96,7 +93,6 @@ export function AppSidebar() {
     },
   ];
 
-  // Admin-specific navigation items
   const adminLinks = [
     {
       title: 'User Management',
@@ -130,7 +126,6 @@ export function AppSidebar() {
     },
   ];
 
-  // Filter navigation items based on user role
   const getNavItems = () => {
     if (!user) return [];
     
@@ -154,11 +149,8 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="border-b">
         <div className="flex items-center gap-2 px-4 py-2">
-          <div className="h-8 w-8 rounded-full bg-brand-500 flex items-center justify-center text-white font-bold">
-            H
-          </div>
           <div className="font-heading font-bold tracking-tight">
-            Healthwise
+            Akros Advisory
           </div>
         </div>
       </SidebarHeader>

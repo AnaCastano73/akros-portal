@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { CoursesList } from '@/components/courses/CoursesList';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,7 +11,7 @@ const Courses = () => {
   const [progress, setProgress] = useState<CourseProgress[]>([]);
 
   useEffect(() => {
-    document.title = 'Courses - Healthwise Advisory Hub';
+    document.title = 'Courses - Akros Advisory Hub';
     if (user) {
       fetchUserData();
     } else {

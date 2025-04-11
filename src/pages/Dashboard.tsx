@@ -9,7 +9,7 @@ const Dashboard = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    document.title = 'Dashboard - Healthwise Advisory Hub';
+    document.title = 'Dashboard - Akros Advisory Hub';
   }, []);
 
   if (!user) return null;

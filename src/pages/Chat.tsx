@@ -6,7 +6,7 @@ import { ChatPanel } from '@/components/chat/ChatPanel';
 
 const Chat = () => {
   useEffect(() => {
-    document.title = 'Chat - Healthwise Advisory Hub';
+    document.title = 'Chat - Akros Advisory Hub';
   }, []);
 
   return (
