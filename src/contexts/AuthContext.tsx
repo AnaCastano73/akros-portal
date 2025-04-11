@@ -15,10 +15,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Function to fetch user profile and role from the database
   const fetchUserProfile = async (userId: string) => {
     try {
-      // Get user profile with company info
+      // Get user profile
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('*, companies:company_id(name)')
+        .select('*')
         .eq('id', userId)
         .maybeSingle(); // Using maybeSingle instead of single to prevent errors if no profile exists
 
@@ -80,19 +80,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userData = await fetchUserProfile(id);
       
       if (userData) {
-        // Extract company data safely
-        const companyId = userData.profile.company_id;
-        const companyName = userData.profile.companies?.name || undefined;
-        
         // Update with the database information
         setUser({
           id,
           email: email || "",
           name: userData.profile.name || email?.split('@')[0] || "User",
           role: userData.role,
-          avatar: userData.profile.avatar,
-          companyId,
-          companyName
+          avatar: userData.profile.avatar
         });
       }
       

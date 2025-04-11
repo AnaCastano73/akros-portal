@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { supabaseTyped } from '@/integrations/supabase/types-extension';
 import { Document } from '@/types/document';
@@ -9,106 +10,36 @@ import { Json } from '@/integrations/supabase/types';
 export const getDocumentsForUser = async (userId: string): Promise<Document[]> => {
   if (!userId) return [];
   
-  try {
-    // Get user's company ID first
-    const { data: userProfile, error: profileError } = await supabaseTyped
-      .from('profiles')
-      .select('company_id')
-      .eq('id', userId)
-      .single();
-      
-    if (profileError) {
-      console.error('Error fetching user profile:', profileError);
-    }
+  const { data, error } = await supabaseTyped
+    .from('documents')
+    .select('*')
+    .or(`visible_to.cs.{${userId}},uploaded_by.eq.${userId}`);
     
-    const companyId = userProfile?.company_id;
-    
-    // Construct query for documents
-    let query = supabaseTyped
-      .from('documents')
-      .select('*');
-    
-    if (companyId) {
-      // Get documents visible to the user or their company
-      query = query.or(`visible_to.cs.{${userId}},uploaded_by.eq.${userId},company_id.eq.${companyId}`);
-    } else {
-      // Only get documents visible to the user or uploaded by them
-      query = query.or(`visible_to.cs.{${userId}},uploaded_by.eq.${userId}`);
-    }
-    
-    const { data, error } = await query;
-    
-    if (error) {
-      console.error('Error fetching documents:', error);
-      return [];
-    }
-    
-    // Transform data to match Document type
-    return data.map((doc): Document => {
-      return {
-        id: doc.id,
-        name: doc.name,
-        url: doc.url,
-        type: doc.type,
-        size: doc.size,
-        uploadedBy: doc.uploaded_by,
-        uploadedAt: new Date(doc.uploaded_at),
-        category: doc.category,
-        visibleTo: doc.visible_to,
-        companyId: doc.company_id,
-        reviewed: doc.reviewed || false,
-        version: doc.version || 1,
-        tags: doc.tags || [],
-        metadata: doc.metadata,
-        annotations: [],
-        comments: []
-      };
-    });
-  } catch (error) {
-    console.error('Error in getDocumentsForUser:', error);
+  if (error) {
+    console.error('Error fetching documents:', error);
     return [];
   }
-};
-
-export const getDocumentsForCompany = async (companyId: string): Promise<Document[]> => {
-  if (!companyId) return [];
   
-  try {
-    const { data, error } = await supabaseTyped
-      .from('documents')
-      .select('*')
-      .eq('company_id', companyId);
-      
-    if (error) {
-      console.error('Error fetching company documents:', error);
-      return [];
-    }
-    
-    // Transform data to match Document type
-    return data.map((doc): Document => {
-      return {
-        id: doc.id,
-        name: doc.name,
-        url: doc.url,
-        type: doc.type,
-        size: doc.size,
-        uploadedBy: doc.uploaded_by,
-        uploadedAt: new Date(doc.uploaded_at),
-        category: doc.category,
-        visibleTo: doc.visible_to,
-        companyId: doc.company_id,
-        reviewed: doc.reviewed || false,
-        version: doc.version || 1,
-        tags: doc.tags || [],
-        metadata: doc.metadata,
-        annotations: [],
-        comments: []
-      };
-    });
-  } catch (error) {
-    console.error('Error in getDocumentsForCompany:', error);
-    return [];
-  }
+  // Transform data to match Document type
+  return data.map((doc): Document => {
+    return {
+      id: doc.id,
+      name: doc.name,
+      url: doc.url,
+      type: doc.type,
+      size: doc.size,
+      uploadedBy: doc.uploaded_by,
+      uploadedAt: new Date(doc.uploaded_at),
+      category: doc.category,
+      visibleTo: doc.visible_to,
+      reviewed: doc.reviewed || false,
+      version: doc.version || 1,
+      tags: doc.tags || [],
+      metadata: doc.metadata,
+      annotations: [],
+      comments: []
+    };
+  });
 };
 
 // Course functions
@@ -250,10 +181,10 @@ export const getCourseProgressForUser = async (userId: string): Promise<CoursePr
 // User functions
 export const getAllUsers = async (): Promise<User[]> => {
   try {
-    // Get all profiles with their roles and company information
+    // Get all profiles with their roles
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
-      .select('*, companies:company_id(name)');
+      .select('*');
       
     if (profilesError) throw profilesError;
     
@@ -267,18 +198,12 @@ export const getAllUsers = async (): Promise<User[]> => {
         return null;
       }
       
-      // Extract company data safely
-      const companyId = profile.company_id;
-      const companyName = profile.companies?.name || undefined;
-      
       return {
         id: profile.id,
         email: profile.email,
         name: profile.name || profile.email.split('@')[0] || 'Unknown',
-        role: roleData,
-        avatar: profile.avatar || '/placeholder.svg',
-        companyId,
-        companyName
+        role: roleData as UserRole,
+        avatar: profile.avatar || '/placeholder.svg'
       };
     }));
     
@@ -313,10 +238,10 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
   if (!userId) return null;
   
   try {
-    // Get user profile with company info
+    // Get user profile
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('*, companies:company_id(name)')
+      .select('*')
       .eq('id', userId)
       .single();
       
@@ -328,16 +253,12 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
       
     if (roleError) throw roleError;
     
-    // Extract company ID safely
-    const companyId = profile.company_id;
-    
     return {
       id: profile.id,
       email: profile.email,
       name: profile.name,
       avatar: profile.avatar,
-      role: roleData,
-      companyId
+      role: roleData as UserRole
     };
   } catch (error) {
     console.error('Error fetching user profile:', error);

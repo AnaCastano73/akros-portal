@@ -89,95 +89,6 @@ export type Database = {
         }
         Relationships: []
       }
-      companies: {
-        Row: {
-          accent_color: string | null
-          created_at: string
-          domain: string | null
-          id: string
-          logo_url: string | null
-          name: string
-          primary_color: string | null
-          secondary_color: string | null
-          updated_at: string
-        }
-        Insert: {
-          accent_color?: string | null
-          created_at?: string
-          domain?: string | null
-          id?: string
-          logo_url?: string | null
-          name: string
-          primary_color?: string | null
-          secondary_color?: string | null
-          updated_at?: string
-        }
-        Update: {
-          accent_color?: string | null
-          created_at?: string
-          domain?: string | null
-          id?: string
-          logo_url?: string | null
-          name?: string
-          primary_color?: string | null
-          secondary_color?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      company_branding: {
-        Row: {
-          accent_color: string | null
-          background_color: string | null
-          company_id: string
-          company_name: string | null
-          created_at: string
-          favicon_url: string | null
-          id: string
-          logo_url: string | null
-          primary_color: string | null
-          secondary_color: string | null
-          text_color: string | null
-          updated_at: string
-        }
-        Insert: {
-          accent_color?: string | null
-          background_color?: string | null
-          company_id: string
-          company_name?: string | null
-          created_at?: string
-          favicon_url?: string | null
-          id?: string
-          logo_url?: string | null
-          primary_color?: string | null
-          secondary_color?: string | null
-          text_color?: string | null
-          updated_at?: string
-        }
-        Update: {
-          accent_color?: string | null
-          background_color?: string | null
-          company_id?: string
-          company_name?: string | null
-          created_at?: string
-          favicon_url?: string | null
-          id?: string
-          logo_url?: string | null
-          primary_color?: string | null
-          secondary_color?: string | null
-          text_color?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "company_branding_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       course_enrollments: {
         Row: {
           completed: boolean | null
@@ -325,7 +236,6 @@ export type Database = {
       documents: {
         Row: {
           category: string
-          company_id: string | null
           id: string
           metadata: Json | null
           name: string
@@ -341,7 +251,6 @@ export type Database = {
         }
         Insert: {
           category: string
-          company_id?: string | null
           id?: string
           metadata?: Json | null
           name: string
@@ -357,7 +266,6 @@ export type Database = {
         }
         Update: {
           category?: string
-          company_id?: string | null
           id?: string
           metadata?: Json | null
           name?: string
@@ -371,15 +279,7 @@ export type Database = {
           version?: number | null
           visible_to?: string[]
         }
-        Relationships: [
-          {
-            foreignKeyName: "documents_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       lesson_progress: {
         Row: {
@@ -494,7 +394,6 @@ export type Database = {
       profiles: {
         Row: {
           avatar: string | null
-          company_id: string | null
           created_at: string
           email: string
           id: string
@@ -502,7 +401,6 @@ export type Database = {
         }
         Insert: {
           avatar?: string | null
-          company_id?: string | null
           created_at?: string
           email: string
           id: string
@@ -510,21 +408,12 @@ export type Database = {
         }
         Update: {
           avatar?: string | null
-          company_id?: string | null
           created_at?: string
           email?: string
           id?: string
           name?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -561,10 +450,6 @@ export type Database = {
           _user_id: string
           _role: Database["public"]["Enums"]["user_role"]
         }
-        Returns: boolean
-      }
-      user_belongs_to_company: {
-        Args: { user_id: string; company_id: string }
         Returns: boolean
       }
     }

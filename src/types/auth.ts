@@ -7,8 +7,6 @@ export interface User {
   email: string;
   role: UserRole;
   avatar?: string;
-  companyId?: string;
-  companyName?: string;
 }
 
 export interface UserProfile {
@@ -17,7 +15,6 @@ export interface UserProfile {
   name: string | null;
   avatar: string | null;
   role: UserRole;
-  companyId?: string | null;
 }
 
 export interface AuthContextType {

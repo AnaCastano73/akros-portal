@@ -9,13 +9,12 @@ export interface Document {
   uploadedAt: Date;
   category: string;
   visibleTo: string[]; // userIds
-  companyId?: string | null; // Added company ID
   comments?: DocumentComment[];
   reviewed?: boolean;
   version?: number;
   versionHistory?: DocumentVersion[];
   tags?: string[];
-  metadata?: Record<string, any> | null | string | number | boolean;
+  metadata?: Record<string, any> | null | string | number | boolean; // Updated to handle any JSON format
   annotations?: DocumentAnnotation[];
   lastViewedAt?: Date;
 }

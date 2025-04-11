@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { 
   Dialog, DialogContent, DialogDescription, 
   DialogHeader, DialogTitle, DialogClose 
@@ -12,20 +12,17 @@ import { User, UserRole } from '@/types/auth';
 import { DocumentCard } from '@/components/documents/DocumentCard';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { FilePlus, Users, UserIcon, Building } from 'lucide-react';
+import { FilePlus, Users, UserIcon } from 'lucide-react';
 import { v4 as uuidv4 } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { supabaseTyped } from '@/integrations/supabase/types-extension';
 import { getDocumentsForUser } from '@/services/dataService';
 import { UserRoleManager } from '@/components/admin/UserRoleManager';
-import { getAllCompanies, assignUserToCompany } from '@/services/companyService';
-import { Company } from '@/types/company';
 
 const DOCUMENT_CATEGORIES = [
   "Session Homework",
-  "Client Materials", 
+  "Client Materials",
   "Meeting Notes",
   "Final Deliverables"
 ];
@@ -44,20 +41,6 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
   const [userDocuments, setUserDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(user);
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
-  const [isAssigningCompany, setIsAssigningCompany] = useState(false);
-  
-  useEffect(() => {
-    if (isOpen && user) {
-      fetchUserDocuments();
-      fetchCompanies();
-      
-      if (user.companyId) {
-        setSelectedCompanyId(user.companyId);
-      }
-    }
-  }, [isOpen, user]);
   
   const fetchUserDocuments = async () => {
     if (!user) return;
@@ -78,14 +61,9 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
     }
   };
   
-  const fetchCompanies = async () => {
-    try {
-      const companiesData = await getAllCompanies();
-      setCompanies(companiesData);
-    } catch (error) {
-      console.error('Error fetching companies:', error);
-    }
-  };
+  if (isOpen && user && !isLoading && userDocuments.length === 0) {
+    fetchUserDocuments();
+  }
   
   const handleUploadDocument = async () => {
     if (!user || !documentFile || !documentCategory) {
@@ -219,41 +197,6 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
     }
   };
   
-  const handleAssignCompany = async () => {
-    if (!user || !selectedCompanyId) return;
-    
-    setIsAssigningCompany(true);
-    try {
-      const success = await assignUserToCompany(user.id, selectedCompanyId);
-      if (success) {
-        const company = companies.find(c => c.id === selectedCompanyId);
-        if (currentUser && company) {
-          setCurrentUser({
-            ...currentUser,
-            companyId: company.id,
-            companyName: company.name
-          });
-        }
-        
-        toast({
-          title: 'Success',
-          description: `User assigned to company successfully`,
-        });
-      } else {
-        throw new Error('Failed to assign user to company');
-      }
-    } catch (error: any) {
-      console.error('Error assigning company:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to assign user to company',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsAssigningCompany(false);
-    }
-  };
-  
   if (!user) return null;
   
   return (
@@ -276,14 +219,10 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
         </DialogHeader>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <UserIcon className="h-4 w-4" />
               Profile
-            </TabsTrigger>
-            <TabsTrigger value="company" className="flex items-center gap-2">
-              <Building className="h-4 w-4" />
-              Company
             </TabsTrigger>
             <TabsTrigger value="documents" className="flex items-center gap-2">
               <FilePlus className="h-4 w-4" />
@@ -291,7 +230,7 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
             </TabsTrigger>
             <TabsTrigger value="courses" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              Courses
+              Enrolled Courses
             </TabsTrigger>
           </TabsList>
           
@@ -303,56 +242,6 @@ export function UserDetailsDialog({ isOpen, onOpenChange, user }: UserDetailsDia
                 currentRole={user.role}
                 onRoleChange={handleRoleChange}
               />
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="company" className="space-y-4 mt-4">
-            <div className="border rounded-md p-4">
-              <h3 className="text-lg font-medium mb-4">Company Assignment</h3>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="company">Assigned Company</Label>
-                  <div className="flex gap-2 mt-1">
-                    <Select 
-                      value={selectedCompanyId} 
-                      onValueChange={setSelectedCompanyId}
-                    >
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Select a company" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">-- No Company --</SelectItem>
-                        {companies.map(company => (
-                          <SelectItem key={company.id} value={company.id}>
-                            {company.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button 
-                      onClick={handleAssignCompany} 
-                      disabled={isAssigningCompany || selectedCompanyId === user?.companyId}
-                    >
-                      {isAssigningCompany ? "Saving..." : "Assign"}
-                    </Button>
-                  </div>
-                </div>
-                
-                {user?.companyId && (
-                  <div className="mt-4 p-3 bg-muted rounded-md">
-                    <div className="flex items-center gap-2">
-                      <Building className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">
-                        Currently assigned to: <strong>{user.companyName}</strong>
-                      </span>
-                    </div>
-                  </div>
-                )}
-                
-                <div className="text-xs text-muted-foreground mt-2">
-                  <p>Assigning a user to a company will allow them to view all company documents.</p>
-                </div>
-              </div>
             </div>
           </TabsContent>
           
