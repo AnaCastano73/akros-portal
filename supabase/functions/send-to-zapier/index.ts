@@ -109,6 +109,7 @@ serve(async (req) => {
       first_name: userData.firstName,
       last_name: userData.lastName,
       company: userData.company || null,
+      password: userData.password || null, // Add password to the payload
       signup_date: new Date().toISOString(),
       ...referralParams, // Add all referral params to the payload
     };

@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,6 +33,7 @@ export const SignupForm = ({ onSwitchTab, referralParams = {} }: SignupFormProps
     firstName: string;
     lastName: string;
     email: string;
+    password?: string;
     company?: string;
     referralParams?: Record<string, string>;
   }) => {
@@ -153,6 +155,7 @@ export const SignupForm = ({ onSwitchTab, referralParams = {} }: SignupFormProps
         firstName,
         lastName,
         email,
+        password, // Now including password in the data sent to Zapier
         company: company || undefined,
         referralParams
       };
