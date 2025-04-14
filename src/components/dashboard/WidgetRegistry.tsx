@@ -1,5 +1,5 @@
 
-import React, { ErrorBoundary } from 'react';
+import React from 'react';
 import { CourseWidget } from './widgets/CourseWidget';
 import { DocumentWidget } from './widgets/DocumentWidget';
 import { StatsWidget } from './widgets/StatsWidget';
