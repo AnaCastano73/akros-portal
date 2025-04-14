@@ -31,7 +31,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <DashboardGrid isAdmin={user.role === 'admin'} />
+        <DashboardGrid isAdmin={user.role === 'admin'} userRole={user.role} />
       </div>
     </DashboardConfigProvider>
   );

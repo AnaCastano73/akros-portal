@@ -1,9 +1,8 @@
-
 import React, { createContext, useState, useContext, useEffect } from 'react';
 
 export interface DashboardWidget {
   id: string;
-  type: 'courses' | 'documents' | 'stats' | 'progress' | 'announcements' | 'custom';
+  type: 'courses' | 'documents' | 'stats' | 'progress' | 'announcements' | 'custom' | 'my-courses' | 'my-roadmap' | 'my-materials';
   title: string;
   position: { x: number; y: number; w: number; h: number };
   config?: Record<string, any>;

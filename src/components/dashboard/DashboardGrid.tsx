@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { WidgetRegistry } from './WidgetRegistry';
 import { useDashboardConfig, DashboardWidget } from '@/contexts/DashboardConfigContext';
 import { Button } from '@/components/ui/button';
@@ -15,14 +15,74 @@ import { v4 as uuidv4 } from 'uuid';
 
 interface DashboardGridProps {
   isAdmin: boolean;
+  userRole: string;
 }
 
-export const DashboardGrid: React.FC<DashboardGridProps> = ({ isAdmin }) => {
+export const DashboardGrid: React.FC<DashboardGridProps> = ({ isAdmin, userRole }) => {
   const { config, updateWidget, resetConfig, updateLayout } = useDashboardConfig();
   const [isEditing, setIsEditing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [showAddWidget, setShowAddWidget] = useState(false);
   const [showBranding, setShowBranding] = useState(false);
+  const [initialSetupDone, setInitialSetupDone] = useState(false);
+  
+  // Setup default widgets based on user role
+  useEffect(() => {
+    if (!isAdmin && !initialSetupDone) {
+      setupWidgetsByRole(userRole);
+      setInitialSetupDone(true);
+    }
+  }, [userRole, isAdmin, initialSetupDone]);
+
+  const setupWidgetsByRole = (role: string) => {
+    let newWidgets: DashboardWidget[] = [];
+    
+    if (role === 'client') {
+      // For clients, we want to show only the new widgets
+      newWidgets = [
+        {
+          id: uuidv4(),
+          type: 'my-courses',
+          title: 'My Courses',
+          position: { x: 0, y: 0, w: 4, h: 2 },
+        },
+        {
+          id: uuidv4(),
+          type: 'my-roadmap',
+          title: 'My Roadmap',
+          position: { x: 4, y: 0, w: 4, h: 2 },
+        },
+        {
+          id: uuidv4(),
+          type: 'my-materials',
+          title: 'My Materials',
+          position: { x: 8, y: 0, w: 4, h: 2 },
+        }
+      ];
+    } else if (role === 'expert' || role === 'employee') {
+      // For experts and employees, remove stats and progress widgets
+      newWidgets = config.widgets.filter(widget => 
+        widget.type !== 'stats' && widget.type !== 'progress'
+      );
+    }
+    
+    // Update the widgets in the config
+    resetConfigWithWidgets(newWidgets);
+  };
+
+  const resetConfigWithWidgets = (widgets: DashboardWidget[]) => {
+    // Create a new config with the specified widgets
+    const newConfig = {
+      ...config,
+      widgets
+    };
+    
+    // Set the new config to localStorage
+    localStorage.setItem('dashboardConfig', JSON.stringify(newConfig));
+    
+    // Force a reload to apply the new config
+    window.location.reload();
+  };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
