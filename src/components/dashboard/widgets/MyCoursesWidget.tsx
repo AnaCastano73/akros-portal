@@ -2,7 +2,6 @@
 import React from 'react';
 import { DashboardWidget as WidgetType } from '@/contexts/DashboardConfigContext';
 import { DashboardWidget } from '@/components/dashboard/DashboardWidget';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Book } from 'lucide-react';
 
@@ -17,7 +16,13 @@ export const MyCoursesWidget: React.FC<MyCoursesWidgetProps> = ({ widget, isEdit
   };
 
   const redirectToThinkify = () => {
-    window.open('https://thinkify.com', '_blank');
+    try {
+      window.open('https://thinkify.com', '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      console.error('Error redirecting to Thinkify:', error);
+      // Fallback if window.open fails for some reason
+      window.location.href = 'https://thinkify.com';
+    }
   };
 
   return (

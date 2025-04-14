@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { WidgetRegistry } from './WidgetRegistry';
 import { useDashboardConfig, DashboardWidget } from '@/contexts/DashboardConfigContext';
@@ -8,10 +7,11 @@ import {
   ResizablePanel,
   ResizableHandle
 } from '@/components/ui/resizable';
-import { Plus, Save, RotateCcw, Paintbrush, Layout } from 'lucide-react';
+import { Plus, Save, RotateCcw, Paintbrush, Layout, AlertTriangle } from 'lucide-react';
 import { AddWidgetDialog } from './AddWidgetDialog';
 import { BrandingDialog } from './BrandingDialog';
 import { v4 as uuidv4 } from 'uuid';
+import { Card } from '@/components/ui/card';
 
 interface DashboardGridProps {
   isAdmin: boolean;
@@ -25,63 +25,85 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({ isAdmin, userRole 
   const [showAddWidget, setShowAddWidget] = useState(false);
   const [showBranding, setShowBranding] = useState(false);
   const [initialSetupDone, setInitialSetupDone] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   
   // Setup default widgets based on user role
   useEffect(() => {
-    if (!isAdmin && !initialSetupDone) {
-      setupWidgetsByRole(userRole);
-      setInitialSetupDone(true);
+    try {
+      setIsLoading(true);
+      if (!isAdmin && !initialSetupDone) {
+        setupWidgetsByRole(userRole);
+        setInitialSetupDone(true);
+      }
+      setIsLoading(false);
+    } catch (error) {
+      console.error("Error setting up dashboard:", error);
+      setHasError(true);
+      setIsLoading(false);
     }
   }, [userRole, isAdmin, initialSetupDone]);
 
   const setupWidgetsByRole = (role: string) => {
-    let newWidgets: DashboardWidget[] = [];
-    
-    if (role === 'client') {
-      // For clients, we want to show only the new widgets
-      newWidgets = [
-        {
-          id: uuidv4(),
-          type: 'my-courses',
-          title: 'My Courses',
-          position: { x: 0, y: 0, w: 4, h: 2 },
-        },
-        {
-          id: uuidv4(),
-          type: 'my-roadmap',
-          title: 'My Roadmap',
-          position: { x: 4, y: 0, w: 4, h: 2 },
-        },
-        {
-          id: uuidv4(),
-          type: 'my-materials',
-          title: 'My Materials',
-          position: { x: 8, y: 0, w: 4, h: 2 },
-        }
-      ];
-    } else if (role === 'expert' || role === 'employee') {
-      // For experts and employees, remove stats and progress widgets
-      newWidgets = config.widgets.filter(widget => 
-        widget.type !== 'stats' && widget.type !== 'progress'
-      );
+    try {
+      let newWidgets: DashboardWidget[] = [];
+      
+      if (role === 'client') {
+        // For clients, we want to show only the new widgets
+        newWidgets = [
+          {
+            id: uuidv4(),
+            type: 'my-courses',
+            title: 'My Courses',
+            position: { x: 0, y: 0, w: 4, h: 2 },
+          },
+          {
+            id: uuidv4(),
+            type: 'my-roadmap',
+            title: 'My Roadmap',
+            position: { x: 4, y: 0, w: 4, h: 2 },
+          },
+          {
+            id: uuidv4(),
+            type: 'my-materials',
+            title: 'My Materials',
+            position: { x: 8, y: 0, w: 4, h: 2 },
+          }
+        ];
+      } else if (role === 'expert' || role === 'employee') {
+        // For experts and employees, remove stats and progress widgets
+        newWidgets = config.widgets.filter(widget => 
+          widget.type !== 'stats' && widget.type !== 'progress'
+        );
+      }
+      
+      // Update the widgets in the config without force reloading
+      resetConfigWithWidgets(newWidgets, false);
+    } catch (error) {
+      console.error("Error in setupWidgetsByRole:", error);
+      setHasError(true);
     }
-    
-    // Update the widgets in the config
-    resetConfigWithWidgets(newWidgets);
   };
 
-  const resetConfigWithWidgets = (widgets: DashboardWidget[]) => {
-    // Create a new config with the specified widgets
-    const newConfig = {
-      ...config,
-      widgets
-    };
-    
-    // Set the new config to localStorage
-    localStorage.setItem('dashboardConfig', JSON.stringify(newConfig));
-    
-    // Force a reload to apply the new config
-    window.location.reload();
+  const resetConfigWithWidgets = (widgets: DashboardWidget[], forceReload: boolean = true) => {
+    try {
+      // Create a new config with the specified widgets
+      const newConfig = {
+        ...config,
+        widgets
+      };
+      
+      // Set the new config to localStorage
+      localStorage.setItem('dashboardConfig', JSON.stringify(newConfig));
+      
+      // Force a reload only if explicitly requested
+      if (forceReload) {
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error("Error in resetConfigWithWidgets:", error);
+      setHasError(true);
+    }
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -134,6 +156,36 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({ isAdmin, userRole 
   const toggleEditMode = () => {
     setIsEditing(!isEditing);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center p-8">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+  
+  if (hasError) {
+    return (
+      <Card className="p-6">
+        <div className="flex flex-col items-center text-center p-4">
+          <div className="mb-4 p-4 bg-amber-100 text-amber-700 rounded-full">
+            <AlertTriangle className="h-8 w-8" />
+          </div>
+          <h3 className="text-xl font-semibold mb-2">Dashboard Error</h3>
+          <p className="text-muted-foreground mb-4">
+            There was a problem loading your dashboard configuration.
+          </p>
+          <Button 
+            onClick={() => window.location.reload()} 
+            className="w-full bg-brand-500 hover:bg-brand-600"
+          >
+            Refresh Dashboard
+          </Button>
+        </div>
+      </Card>
+    );
+  }
 
   if (!isAdmin && !isEditing) {
     // Non-admin view
