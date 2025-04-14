@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,24 +34,24 @@ export const SignupForm = ({ onSwitchTab, referralParams = {} }: SignupFormProps
     email: string;
     company?: string;
     referralParams?: Record<string, string>;
-  }, token: string) => {
+  }) => {
     try {
       console.log("Sending user data to Zapier:", userData);
       
-      const { error } = await supabase.functions.invoke('send-to-zapier', {
-        body: { userData },
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+      const { data, error } = await supabase.functions.invoke('send-to-zapier', {
+        body: { userData }
       });
       
       if (error) {
         console.error("Error sending data to Zapier:", error);
+        return { success: false, error };
       } else {
-        console.log("Data sent to Zapier successfully");
+        console.log("Data sent to Zapier successfully:", data);
+        return { success: true, data };
       }
     } catch (error) {
       console.error("Exception sending data to Zapier:", error);
+      return { success: false, error };
     }
   };
 
@@ -149,26 +148,21 @@ export const SignupForm = ({ onSwitchTab, referralParams = {} }: SignupFormProps
       
       console.log("Signup response:", data);
       
-      // Get session token for Zapier function authorization
-      if (data?.session?.access_token) {
-        // Send user data to Zapier
-        await sendToZapier({
-          firstName,
-          lastName,
-          email,
-          company: company || undefined,
-          referralParams: referralParams
-        }, data.session.access_token);
-      }
-      
-      // Send user data to SharePoint Excel
-      await updateSharePointExcel({
+      // Send user data to integration services regardless of session
+      const userData = {
         firstName,
         lastName,
         email,
         company: company || undefined,
-        referralParams: referralParams
-      });
+        referralParams
+      };
+      
+      // Call the sendToZapier function without requiring authentication
+      const zapierResult = await sendToZapier(userData);
+      console.log("Zapier integration result:", zapierResult);
+      
+      // Send user data to SharePoint Excel
+      await updateSharePointExcel(userData);
       
       // Check if email confirmation is required
       if (data?.user && !data.user.confirmed_at) {

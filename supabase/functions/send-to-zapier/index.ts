@@ -16,6 +16,7 @@ serve(async (req) => {
   }
 
   try {
+    // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -26,33 +27,84 @@ serve(async (req) => {
       }
     );
 
-    // Get the authorization header from the request
+    // Log the incoming request for debugging
+    console.log('Received request to send-to-zapier with headers:', 
+      JSON.stringify([...req.headers.entries()].reduce((obj, [key, val]) => {
+        obj[key] = val;
+        return obj;
+      }, {})));
+
+    // Get request body
+    let userData;
+    try {
+      const body = await req.json();
+      userData = body.userData;
+      console.log('Request body:', JSON.stringify(body));
+    } catch (parseError) {
+      console.error('Error parsing request body:', parseError);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Invalid request body format',
+        }),
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders,
+          },
+        }
+      );
+    }
+
+    if (!userData) {
+      console.error('Missing userData in request body');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Missing userData in request body',
+        }),
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders,
+          },
+        }
+      );
+    }
+
+    // Get user from auth header if present
+    let user = null;
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Missing Authorization header');
+    if (authHeader) {
+      try {
+        const { data, error } = await supabaseClient.auth.getUser(
+          authHeader.replace('Bearer ', '')
+        );
+        
+        if (error) {
+          console.error('Error getting user:', error.message);
+        } else if (data?.user) {
+          user = data.user;
+          console.log('Authenticated user:', user.id);
+        }
+      } catch (authError) {
+        console.error('Auth error:', authError);
+      }
+    } else {
+      console.log('No Authorization header present, proceeding with public access');
     }
-
-    // Get the user from the auth header
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (userError || !user) {
-      throw new Error('Error getting user or user not found');
-    }
-
-    // Get data from request body
-    const { userData } = await req.json();
-    
-    // The fixed Zapier webhook URL
-    const webhookUrl = 'https://hooks.zapier.com/hooks/catch/21954452/20avejv/';
     
     // Extract referral parameters if any
     const referralParams = userData.referralParams || {};
     
+    // The fixed Zapier webhook URL
+    const webhookUrl = 'https://hooks.zapier.com/hooks/catch/21954452/20avejv/';
+    
     // Prepare data for Zapier webhook
     const payload = {
-      user_id: user.id,
+      user_id: user?.id || 'anonymous',
       email: userData.email,
       first_name: userData.firstName,
       last_name: userData.lastName,
@@ -61,66 +113,81 @@ serve(async (req) => {
       ...referralParams, // Add all referral params to the payload
     };
 
-    console.log('Sending webhook to Zapier with payload:', payload);
+    console.log('Sending webhook to Zapier with payload:', JSON.stringify(payload));
 
     // Log the webhook event in the database
-    const { data: eventData, error: eventError } = await supabaseClient
-      .from('webhook_events')
-      .insert({
-        event_type: 'user_signup',
-        payload,
-        webhook_url: webhookUrl,
-      })
-      .select('id')
-      .single();
+    try {
+      const { data: eventData, error: eventError } = await supabaseClient
+        .from('webhook_events')
+        .insert({
+          event_type: 'user_signup',
+          payload,
+          webhook_url: webhookUrl,
+        })
+        .select('id')
+        .single();
 
-    if (eventError) {
-      console.error('Error logging webhook event:', eventError);
-      throw new Error('Error logging webhook event');
+      if (eventError) {
+        console.error('Error logging webhook event:', eventError);
+      } else {
+        console.log('Webhook event logged with ID:', eventData.id);
+      }
+    } catch (dbError) {
+      console.error('Database error logging webhook event:', dbError);
     }
 
     // Send the data to Zapier
-    const response = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    // Check if the request was successful
-    if (!response.ok) {
-      const responseText = await response.text();
-      throw new Error(`Error sending data to Zapier: ${responseText}`);
-    }
-
-    // Get the response data
-    const responseData = await response.json().catch(() => ({}));
-    
-    // Update the webhook event with the response data and status
-    await supabaseClient
-      .from('webhook_events')
-      .update({
-        status: 'success',
-        response_data: responseData,
-      })
-      .eq('id', eventData.id);
-
-    // Return success response
-    return new Response(
-      JSON.stringify({ success: true, message: 'Data sent to Zapier successfully' }),
-      {
+    try {
+      console.log(`Sending POST request to ${webhookUrl}`);
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...corsHeaders,
         },
+        body: JSON.stringify(payload),
+      });
+
+      // Check if the request was successful
+      if (!response.ok) {
+        const responseText = await response.text();
+        console.error(`Error from Zapier (${response.status}): ${responseText}`);
+        throw new Error(`Error sending data to Zapier: ${responseText}`);
       }
-    );
+
+      // Get the response data
+      const responseData = await response.json().catch(() => ({}));
+      console.log('Zapier response:', JSON.stringify(responseData));
+      
+      // Update the webhook event with the response data and status
+      if (eventData?.id) {
+        await supabaseClient
+          .from('webhook_events')
+          .update({
+            status: 'success',
+            response_data: responseData,
+          })
+          .eq('id', eventData.id);
+      }
+
+      // Return success response
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'Data sent to Zapier successfully' 
+        }),
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders,
+          },
+        }
+      );
+    } catch (fetchError) {
+      console.error('Fetch error sending to Zapier:', fetchError);
+      throw fetchError;
+    }
   } catch (error) {
     console.error('Error in send-to-zapier function:', error);
-    
-    // Update webhook event with error status if possible
-    // (not critical if this fails)
     
     // Return error response
     return new Response(

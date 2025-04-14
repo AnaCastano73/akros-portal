@@ -33,8 +33,9 @@ enabled = true
 
 [[edge_functions.function]]
 name = "update-sharepoint-excel"
-verify_jwt = true
+verify_jwt = false
 
 [[edge_functions.function]]
 name = "send-to-zapier"
-verify_jwt = true
+verify_jwt = false
+
