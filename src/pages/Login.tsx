@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { SignupForm } from '@/components/auth/SignupForm';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,6 +11,8 @@ const Login = () => {
   const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<string>("login");
+  const [searchParams] = useSearchParams();
+  const [referralParams, setReferralParams] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
@@ -18,10 +20,36 @@ const Login = () => {
     }
   }, [isAuthenticated, navigate, isLoading]);
 
-  // Check URL parameters for redirect to signup
+  // Capture all URL parameters on component mount
   useEffect(() => {
-    const queryParams = new URLSearchParams(window.location.search);
-    const tab = queryParams.get('tab');
+    const params: Record<string, string> = {};
+    
+    // Add course parameter if present
+    const course = searchParams.get('course');
+    if (course) {
+      params.course = course;
+    }
+    
+    // Capture any other parameters that might be valuable for tracking
+    const utm_source = searchParams.get('utm_source');
+    if (utm_source) {
+      params.utm_source = utm_source;
+    }
+    
+    const utm_medium = searchParams.get('utm_medium');
+    if (utm_medium) {
+      params.utm_medium = utm_medium;
+    }
+    
+    const utm_campaign = searchParams.get('utm_campaign');
+    if (utm_campaign) {
+      params.utm_campaign = utm_campaign;
+    }
+    
+    setReferralParams(params);
+    
+    // Check for signup tab parameter
+    const tab = searchParams.get('tab');
     if (tab === 'signup') {
       setActiveTab('signup');
       toast({
@@ -29,7 +57,7 @@ const Login = () => {
         description: "Create an account to get started.",
       });
     }
-  }, []);
+  }, [searchParams]);
 
   if (isLoading) {
     return (
@@ -63,7 +91,7 @@ const Login = () => {
             <LoginForm onSwitchTab={() => setActiveTab("signup")} />
           </TabsContent>
           <TabsContent value="signup">
-            <SignupForm onSwitchTab={() => setActiveTab("login")} />
+            <SignupForm onSwitchTab={() => setActiveTab("login")} referralParams={referralParams} />
           </TabsContent>
         </Tabs>
       </div>

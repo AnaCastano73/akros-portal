@@ -47,6 +47,9 @@ serve(async (req) => {
     // The fixed Zapier webhook URL
     const webhookUrl = 'https://hooks.zapier.com/hooks/catch/21954452/20avejv/';
     
+    // Extract referral parameters if any
+    const referralParams = userData.referralParams || {};
+    
     // Prepare data for Zapier webhook
     const payload = {
       user_id: user.id,
@@ -55,6 +58,7 @@ serve(async (req) => {
       last_name: userData.lastName,
       company: userData.company || null,
       signup_date: new Date().toISOString(),
+      ...referralParams, // Add all referral params to the payload
     };
 
     console.log('Sending webhook to Zapier with payload:', payload);

@@ -12,9 +12,10 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface SignupFormProps {
   onSwitchTab?: () => void;
+  referralParams?: Record<string, string>;
 }
 
-export const SignupForm = ({ onSwitchTab }: SignupFormProps) => {
+export const SignupForm = ({ onSwitchTab, referralParams = {} }: SignupFormProps) => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [company, setCompany] = useState('');
@@ -33,6 +34,7 @@ export const SignupForm = ({ onSwitchTab }: SignupFormProps) => {
     lastName: string;
     email: string;
     company?: string;
+    referralParams?: Record<string, string>;
   }, token: string) => {
     try {
       console.log("Sending user data to Zapier:", userData);
@@ -60,6 +62,7 @@ export const SignupForm = ({ onSwitchTab }: SignupFormProps) => {
     lastName: string;
     email: string;
     company?: string;
+    referralParams?: Record<string, string>;
   }) => {
     try {
       console.log("Sending user data to SharePoint Excel:", userData);
@@ -116,18 +119,28 @@ export const SignupForm = ({ onSwitchTab }: SignupFormProps) => {
         throw new Error('This email is already registered. Please use a different email or try logging in.');
       }
       
+      // Prepare the metadata with user info and referral params
+      const metadata = {
+        first_name: firstName,
+        last_name: lastName,
+        name: fullName,
+        company: company || null,
+      };
+      
+      // Add referral parameters to metadata if they exist
+      if (referralParams) {
+        Object.entries(referralParams).forEach(([key, value]) => {
+          metadata[key] = value;
+        });
+      }
+      
       // Proceed with signup
       console.log("Attempting to sign up with email:", email);
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: {
-            first_name: firstName,
-            last_name: lastName,
-            name: fullName,
-            company: company || null,
-          },
+          data: metadata,
           emailRedirectTo: window.location.origin
         }
       });
@@ -143,7 +156,8 @@ export const SignupForm = ({ onSwitchTab }: SignupFormProps) => {
           firstName,
           lastName,
           email,
-          company: company || undefined
+          company: company || undefined,
+          referralParams: referralParams
         }, data.session.access_token);
       }
       
@@ -152,7 +166,8 @@ export const SignupForm = ({ onSwitchTab }: SignupFormProps) => {
         firstName,
         lastName,
         email,
-        company: company || undefined
+        company: company || undefined,
+        referralParams: referralParams
       });
       
       // Check if email confirmation is required
@@ -213,6 +228,15 @@ export const SignupForm = ({ onSwitchTab }: SignupFormProps) => {
     setShowConfirmPassword(!showConfirmPassword);
   };
 
+  // Check if we have a course in the referral params and display it
+  const courseInfo = referralParams?.course ? (
+    <div className="mt-4 p-3 bg-brand-50 rounded-md border border-brand-100">
+      <p className="text-sm text-brand-700">
+        You're signing up for: <strong>{referralParams.course}</strong>
+      </p>
+    </div>
+  ) : null;
+
   return (
     <Card className="w-full max-w-md mx-auto border-0 shadow-none">
       <CardHeader>
@@ -220,6 +244,7 @@ export const SignupForm = ({ onSwitchTab }: SignupFormProps) => {
         <CardDescription className="text-center">
           Enter your details to register for an account
         </CardDescription>
+        {courseInfo}
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
