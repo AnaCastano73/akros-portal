@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { WidgetRegistry } from './WidgetRegistry';
 import { useDashboardConfig, DashboardWidget } from '@/contexts/DashboardConfigContext';
@@ -19,7 +20,14 @@ interface DashboardGridProps {
 }
 
 export const DashboardGrid: React.FC<DashboardGridProps> = ({ isAdmin, userRole }) => {
-  const { config, updateWidget, resetConfig, updateLayout } = useDashboardConfig();
+  const { 
+    config, 
+    updateWidget, 
+    resetConfig, 
+    updateLayout, 
+    initializeWidgetsForRole,
+    getDefaultWidgetsForRole
+  } = useDashboardConfig();
   const [isEditing, setIsEditing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [showAddWidget, setShowAddWidget] = useState(false);
@@ -28,83 +36,28 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({ isAdmin, userRole 
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   
-  // Setup default widgets based on user role
+  // Initialize dashboard based on user role
   useEffect(() => {
     try {
       setIsLoading(true);
-      if (!isAdmin && !initialSetupDone) {
-        setupWidgetsByRole(userRole);
+      
+      // Clear localStorage to ensure no stale configuration
+      if (!initialSetupDone) {
+        localStorage.removeItem('dashboardConfig');
+        
+        // Initialize widgets based on role
+        initializeWidgetsForRole(userRole);
+        
         setInitialSetupDone(true);
       }
+      
       setIsLoading(false);
     } catch (error) {
       console.error("Error setting up dashboard:", error);
       setHasError(true);
       setIsLoading(false);
     }
-  }, [userRole, isAdmin, initialSetupDone]);
-
-  const setupWidgetsByRole = (role: string) => {
-    try {
-      let newWidgets: DashboardWidget[] = [];
-      
-      if (role === 'client') {
-        // For clients, we want to show only the new widgets
-        newWidgets = [
-          {
-            id: uuidv4(),
-            type: 'my-courses',
-            title: 'My Courses',
-            position: { x: 0, y: 0, w: 4, h: 2 },
-          },
-          {
-            id: uuidv4(),
-            type: 'my-roadmap',
-            title: 'My Roadmap',
-            position: { x: 4, y: 0, w: 4, h: 2 },
-          },
-          {
-            id: uuidv4(),
-            type: 'my-materials',
-            title: 'My Materials',
-            position: { x: 8, y: 0, w: 4, h: 2 },
-          }
-        ];
-      } else if (role === 'expert' || role === 'employee') {
-        // For experts and employees, remove stats and progress widgets
-        newWidgets = config.widgets.filter(widget => 
-          widget.type !== 'stats' && widget.type !== 'progress'
-        );
-      }
-      
-      // Update the widgets in the config without force reloading
-      resetConfigWithWidgets(newWidgets, false);
-    } catch (error) {
-      console.error("Error in setupWidgetsByRole:", error);
-      setHasError(true);
-    }
-  };
-
-  const resetConfigWithWidgets = (widgets: DashboardWidget[], forceReload: boolean = true) => {
-    try {
-      // Create a new config with the specified widgets
-      const newConfig = {
-        ...config,
-        widgets
-      };
-      
-      // Set the new config to localStorage
-      localStorage.setItem('dashboardConfig', JSON.stringify(newConfig));
-      
-      // Force a reload only if explicitly requested
-      if (forceReload) {
-        window.location.reload();
-      }
-    } catch (error) {
-      console.error("Error in resetConfigWithWidgets:", error);
-      setHasError(true);
-    }
-  };
+  }, [userRole, isAdmin, initialSetupDone, initializeWidgetsForRole]);
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -157,6 +110,12 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({ isAdmin, userRole 
     setIsEditing(!isEditing);
   };
 
+  const handleResetConfig = () => {
+    // Reset with the correct role-specific widgets
+    localStorage.removeItem('dashboardConfig');
+    initializeWidgetsForRole(userRole);
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center p-8">
@@ -177,7 +136,10 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({ isAdmin, userRole 
             There was a problem loading your dashboard configuration.
           </p>
           <Button 
-            onClick={() => window.location.reload()} 
+            onClick={() => {
+              localStorage.removeItem('dashboardConfig');
+              window.location.reload();
+            }} 
             className="w-full bg-brand-500 hover:bg-brand-600"
           >
             Refresh Dashboard
@@ -262,7 +224,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({ isAdmin, userRole 
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={resetConfig}
+                onClick={handleResetConfig}
               >
                 <RotateCcw className="h-4 w-4 mr-2" />
                 Reset
